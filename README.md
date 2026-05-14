@@ -1,5 +1,7 @@
 # Baby Stats Display
 
+![build](https://github.com/Capynaras-Club/BloomOnDevice/actions/workflows/build.yml/badge.svg)
+
 Bedside baby tracker on ESP32-C3 with a 2.4" ILI9341 TFT touchscreen.
 
 ## Screens
@@ -41,9 +43,15 @@ All times are displayed in 24-hour format.
 ### PlatformIO
 
 ```bash
-pio run --target upload
-pio device monitor
+pio run                          # compile
+pio run --target upload          # flash
+pio device monitor               # serial console
 ```
+
+CI runs `pio run` on every push and pull request via
+`.github/workflows/build.yml`. The workflow uploads the compiled `firmware.bin`,
+`firmware.elf`, `bootloader.bin`, and `partitions.bin` as a build artifact
+that can be downloaded from the Actions tab.
 
 ### Arduino IDE
 
