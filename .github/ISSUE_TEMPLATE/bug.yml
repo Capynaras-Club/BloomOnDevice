@@ -1,0 +1,39 @@
+name: Bug report
+description: Something is broken or doesn't behave as documented
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you see, what did you expect?
+    validations:
+      required: true
+
+  - type: input
+    id: board
+    attributes:
+      label: Board / display variant
+      placeholder: ESP32-C3-DevKitM-1 + generic ILI9341 + XPT2046
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware version or commit
+      placeholder: v0.1.0 / nightly-20260514-abc1234
+
+  - type: input
+    id: toolchain
+    attributes:
+      label: Toolchain
+      placeholder: platformio core 6.x / espressif32 6.10.0
+      description: Not needed if you flashed the CI artifact
+
+  - type: textarea
+    id: serial
+    attributes:
+      label: Serial log
+      description: Set `CORE_DEBUG_LEVEL=4` in `platformio.ini` and paste the relevant snippet
+      render: shell

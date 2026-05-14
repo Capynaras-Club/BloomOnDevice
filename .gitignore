@@ -43,6 +43,9 @@
 build/
 Build/
 build-*/
+.pio/
+.pioenvs/
+.piolibdeps/
 
 # CMake generated files
 CMakeFiles/

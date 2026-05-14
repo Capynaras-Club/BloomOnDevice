@@ -1,0 +1,95 @@
+#pragma once
+
+// =========================================================================
+// Pin definitions — ESP32-C3 to ILI9341 + XPT2046
+// =========================================================================
+
+#define PIN_SCK         6
+#define PIN_MOSI        7
+#define PIN_MISO        2
+
+#define PIN_TFT_CS     10
+#define PIN_TFT_DC      3
+#define PIN_TFT_RST     4
+
+#define PIN_TOUCH_CS    8
+#define PIN_TOUCH_IRQ   9
+
+#define PIN_BACKLIGHT   5
+
+// =========================================================================
+// SPI speeds
+// =========================================================================
+
+#define TFT_SPI_HZ      27000000
+#define TOUCH_SPI_HZ     2500000
+
+// =========================================================================
+// Display geometry — landscape 320x240
+// =========================================================================
+
+#define SCREEN_W        320
+#define SCREEN_H        240
+#define TFT_ROTATION    1
+
+// =========================================================================
+// Touch calibration (raw XPT2046 min/max)
+// =========================================================================
+
+#define TOUCH_MIN_X    200
+#define TOUCH_MAX_X   3900
+#define TOUCH_MIN_Y    240
+#define TOUCH_MAX_Y   3800
+
+// =========================================================================
+// UI colors (RGB565)
+// =========================================================================
+
+#define COL_BG            0x0863  // #0C0C18
+#define COL_BAR           0x0843  // #10101E
+#define COL_DIVIDER       0x2947  // #2A2A3E
+#define COL_TEXT          0xEF3F  // #E8E8FF
+#define COL_TEXT_DIM      0x7394  // #7070A0
+#define COL_CLOCK         0xD69F  // #D0D0FF
+
+#define COL_FEED          0xF4EC  // #F4A261
+#define COL_FEED_BG       0x28C1  // #2A1A0E
+#define COL_DIAPER        0x7E5C  // #7EC8E3
+#define COL_DIAPER_BG     0x08E4  // #0A1E26
+#define COL_SLEEP         0xC57E  // #C0AEF5
+#define COL_SLEEP_BG      0x187D  // #160F2E
+
+#define COL_DEL_ARM       0x2061  // #2A0A0A
+#define COL_DEL_CONFIRM   0xC185  // #C0302A
+#define COL_RAIN          0x7E5C  // #7EC8E3
+
+// =========================================================================
+// Power management
+// =========================================================================
+
+#define BACKLIGHT_FULL      255
+#define BACKLIGHT_DIM        64
+#define DIM_TIMEOUT_MS    30000
+#define SLEEP_TIMEOUT_MS  40000
+
+// =========================================================================
+// Behavior
+// =========================================================================
+
+#define TOUCH_DEBOUNCE_MS   200
+#define TIMER_REFRESH_MS   5000
+#define WEATHER_REFRESH_MS 1800000UL    // 30 min
+#define DELETE_CONFIRM_MS  2000
+
+#define EVENTS_PER_PAGE      5
+#define HISTORY_DAYS         3
+
+#define MAX_EVENTS         500
+
+// =========================================================================
+// Event types
+// =========================================================================
+
+#define EV_FEED     0
+#define EV_DIAPER   1
+#define EV_SLEEP    2
