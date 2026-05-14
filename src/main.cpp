@@ -246,4 +246,10 @@ void loop() {
   if (needsRender) renderScreen(currentScreen);
 
   updatePowerState();
+
+  // Yield 10ms each iteration: feeds the watchdog, lets IDLE/WiFi/lwIP tasks
+  // run, and allows the core to drop into automatic light sleep between
+  // ticks. 10ms is well below the touch debounce window so there is no
+  // perceptible latency cost.
+  vTaskDelay(pdMS_TO_TICKS(10));
 }
