@@ -1,0 +1,90 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  firmware:
+    name: Build and publish firmware
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache PlatformIO state
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+            .pio
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: pio-${{ runner.os }}-
+
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          pip install platformio
+
+      - name: Build
+        run: pio run -e esp32-c3-devkitm-1
+
+      - name: Stage firmware artifacts
+        run: |
+          mkdir -p release
+          cp .pio/build/esp32-c3-devkitm-1/firmware.bin   release/
+          cp .pio/build/esp32-c3-devkitm-1/firmware.elf   release/
+          cp .pio/build/esp32-c3-devkitm-1/bootloader.bin release/
+          cp .pio/build/esp32-c3-devkitm-1/partitions.bin release/
+          ( cd release && sha256sum * > SHA256SUMS )
+          ls -la release
+
+      # ---------------------------------------------------------------
+      # Tagged release (v1.2.3 etc.)
+      # ---------------------------------------------------------------
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+      # ---------------------------------------------------------------
+      # Rolling "nightly" pre-release on every push to main.
+      # The `nightly` tag is moved to point at the latest main commit
+      # so the download URL stays stable across builds.
+      # ---------------------------------------------------------------
+      - name: Move nightly tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git tag -f nightly
+          git push -f origin nightly
+
+      - name: Publish nightly pre-release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: "Nightly build (main @ ${{ github.sha }})"
+          body: |
+            Automated build of `main` at commit ${{ github.sha }}.
+            This tag is moved on every push to `main`.
+          prerelease: true
+          make_latest: false
+          files: release/*
+          fail_on_unmatched_files: true

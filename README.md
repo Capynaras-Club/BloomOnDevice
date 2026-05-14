@@ -131,7 +131,7 @@ pio --version
 4. Board settings:
    - Board: **ESP32C3 Dev Module**
    - Flash Size: **4MB (32Mb)**
-   - Partition Scheme: **Default 4MB with spiffs**
+   - Partition Scheme: **Default 4MB with spiffs** (formatted as LittleFS at first boot)
    - Upload Speed: **921600**
    - USB CDC On Boot: **Enabled**
 
@@ -165,11 +165,17 @@ pio device monitor --port /dev/ttyACM0
 3. **Sketch → Upload** (`Ctrl+U`).
 4. Open the Serial Monitor at **115200 baud** to see boot logs.
 
-### From the CI artifact
+### From a release
 
-If you don't want to set up a toolchain, every push triggers the
-`build` workflow. Download `firmware-esp32-c3.zip` from the run's
-**Artifacts** section and flash with `esptool.py`:
+The fastest path if you don't want to set up a toolchain:
+
+- **Nightly** (latest `main` commit) →
+  `https://github.com/Capynaras-Club/BloomOnDevice/releases/tag/nightly`
+- **Stable** (when one is cut) → the
+  [releases page](https://github.com/Capynaras-Club/BloomOnDevice/releases)
+
+Download `firmware.bin`, `bootloader.bin`, and `partitions.bin` and flash
+with `esptool.py`:
 
 ```bash
 pip install esptool
@@ -300,6 +306,15 @@ Re-flash after editing.
 
 ---
 
+## License
+
+[CC0 1.0 Universal](LICENSE) — public-domain dedication. Do whatever you
+want with this code.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## File layout
 
 ```
@@ -313,7 +328,8 @@ src/
   weather.h    — ip-api + Open-Meteo fetch and parse
   wifi_mgr.h   — saved-credential connect, SoftAP portal, NTP sync
   ui.h         — screen enum, WiFi-aware navigation
-.github/workflows/build.yml  — PlatformIO compile on every push/PR
+.github/workflows/build.yml    — PlatformIO compile on every push/PR
+.github/workflows/release.yml  — nightly + tagged firmware releases
 platformio.ini               — board, libs, partition scheme
 ```
 

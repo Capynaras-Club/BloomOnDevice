@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include <SPIFFS.h>
+#include <LittleFS.h>
 #include "config.h"
 #include "events.h"
 
@@ -12,15 +12,15 @@ uint16_t eventCount   = 0;
 uint32_t nextEventId  = 1;
 
 inline bool storageInit() {
-  if (!SPIFFS.begin(true)) {
-    Serial.println("[storage] SPIFFS mount failed");
+  if (!LittleFS.begin(true)) {
+    Serial.println("[storage] LittleFS mount failed");
     return false;
   }
   return true;
 }
 
 void saveEvents() {
-  File f = SPIFFS.open(EVENTS_FILE, FILE_WRITE);
+  File f = LittleFS.open(EVENTS_FILE, FILE_WRITE);
   if (!f) {
     Serial.println("[storage] save: open failed");
     return;
@@ -34,8 +34,8 @@ void saveEvents() {
 }
 
 bool loadEvents() {
-  if (!SPIFFS.exists(EVENTS_FILE)) return false;
-  File f = SPIFFS.open(EVENTS_FILE, FILE_READ);
+  if (!LittleFS.exists(EVENTS_FILE)) return false;
+  File f = LittleFS.open(EVENTS_FILE, FILE_READ);
   if (!f) return false;
   f.read((uint8_t*)&eventCount,  sizeof(eventCount));
   f.read((uint8_t*)&nextEventId, sizeof(nextEventId));

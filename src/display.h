@@ -111,9 +111,6 @@ inline void drawNavBar(Screen s) {
   if (hasLeftArrow(s)) {
     tft.setTextColor(COL_TEXT);
     tft.setCursor(14, 212);
-    tft.print((char)0x11);  // '◄' approximation via char code
-    // Fallback ASCII arrow
-    tft.setCursor(14, 212);
     tft.print("<");
   }
   if (hasRightArrow(s)) {

@@ -10,6 +10,7 @@
 #include <Adafruit_ILI9341.h>
 #include <XPT2046_Touchscreen.h>
 #include <esp_sleep.h>
+#include <driver/gpio.h>
 #include <time.h>
 
 #include "config.h"
@@ -67,7 +68,10 @@ void updatePowerState() {
   if (idle > SLEEP_TIMEOUT_MS && !isAsleep) {
     isAsleep = true;
     backlightSet(0);
-    esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_TOUCH_IRQ, 0);
+    // ESP32-C3 has no ext0/ext1 — use the GPIO wakeup source instead.
+    // T_IRQ pulls low on touch; wake on the low level.
+    gpio_wakeup_enable((gpio_num_t)PIN_TOUCH_IRQ, GPIO_INTR_LOW_LEVEL);
+    esp_sleep_enable_gpio_wakeup();
     esp_light_sleep_start();
     // Resumes here on touch
     lastActivity = millis();
@@ -181,17 +185,18 @@ void setup() {
   drawTextCentered(SCREEN_W / 2, 100, "Baby Stats",  COL_TEXT, 3);
   drawTextCentered(SCREEN_W / 2, 140, "starting...", COL_TEXT_DIM, 1);
 
-  // WiFi
-  if (WifiMgr::connectSaved()) {
+  // WiFi — connects to saved creds, or runs the WiFiManager captive
+  // portal at "BabyStatsSetup" until a network is configured or the
+  // portal times out. Returns false → offline mode.
+  drawTextCentered(SCREEN_W / 2, 160, "connecting wifi...", COL_TEXT_DIM, 1);
+  if (WifiMgr::ensureConnected()) {
     hasWifi = true;
-    drawTextCentered(SCREEN_W / 2, 160, "wifi ok", COL_TEXT_DIM, 1);
     if (fetchLocation()) {
       WifiMgr::setTimezone(location.timezone);
       fetchWeather();
       lastWeatherFetch = millis();
     }
   } else {
-    drawTextCentered(SCREEN_W / 2, 160, "no wifi (offline mode)", COL_TEXT_DIM, 1);
     hasWifi = false;
   }
 

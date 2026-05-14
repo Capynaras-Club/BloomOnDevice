@@ -36,7 +36,7 @@ inline bool fetchLocation() {
   int code = http.GET();
   if (code != 200) { http.end(); return false; }
 
-  StaticJsonDocument<768> doc;
+  JsonDocument doc;
   DeserializationError err = deserializeJson(doc, http.getStream());
   http.end();
   if (err) return false;
@@ -73,7 +73,7 @@ inline bool fetchWeather() {
   int code = http.GET();
   if (code != 200) { http.end(); return false; }
 
-  DynamicJsonDocument doc(16384);
+  JsonDocument doc;
   DeserializationError err = deserializeJson(doc, http.getStream());
   http.end();
   if (err) {
