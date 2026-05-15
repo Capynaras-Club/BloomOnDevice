@@ -1,4 +1,4 @@
-# Baby Stats Display
+# Bloom on Device
 
 ![build](https://github.com/Capynaras-Club/BloomOnDevice/actions/workflows/build.yml/badge.svg)
 
@@ -208,7 +208,7 @@ launches a SoftAP captive portal:
    [wifi] starting SoftAP provisioning
    ```
 2. On your phone or laptop, connect to the WiFi network named
-   **`BabyStatsSetup`** (no password).
+   **`BloomSetup`** (no password).
 3. Browse to **`http://192.168.4.1`**. A small form appears.
 4. Enter your home WiFi SSID and password, tap **Save**.
 5. The device stores the credentials in NVS and reboots. It will then:

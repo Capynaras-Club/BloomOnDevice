@@ -57,7 +57,7 @@ in. (If macOS or Windows can't see the board, install the CH340 driver from
 1. Plug the ESP32 into your computer with the USB-C cable.
 2. Open **[the installer page][installer]** in Chrome, Edge, or Opera on a
    desktop. (Phone browsers don't have the right API.)
-3. Click **Install Baby Stats Display**.
+3. Click **Install Bloom on Device**.
 4. A pop-up will ask which serial port to use — pick the one that just
    appeared (usually labeled "USB-SERIAL CH340" or similar).
 5. Confirm and wait. The installer downloads ~1 MB and flashes the board.
@@ -75,7 +75,7 @@ The display should power on within a couple of seconds. The first boot
 needs WiFi credentials:
 
 1. On your phone, open **Settings → WiFi**. You'll see a new network named
-   **`BabyStatsSetup`**. Connect to it (no password).
+   **`BloomSetup`**. Connect to it (no password).
 2. Your phone should automatically open a setup page. If it doesn't, open
    any browser and go to `http://192.168.4.1`.
 3. Pick your home WiFi from the list, type your password, and tap **Save**.
@@ -138,7 +138,7 @@ to cancel.
 - If you unplug it and plug it back in, **everything is remembered** —
   WiFi creds, recent events, and the clock re-syncs in seconds.
 - If you move house or want to change WiFi: hold the BOOT button on the
-  ESP32 while powering on. The `BabyStatsSetup` portal will reopen.
+  ESP32 while powering on. The `BloomSetup` portal will reopen.
 
 ---
 

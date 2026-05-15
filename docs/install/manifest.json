@@ -1,5 +1,5 @@
 {
-  "name": "Baby Stats Display",
+  "name": "Bloom on Device",
   "version": "nightly",
   "new_install_prompt_erase": true,
   "builds": [
