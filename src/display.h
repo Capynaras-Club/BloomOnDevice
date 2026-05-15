@@ -55,6 +55,13 @@ inline void backlightSet(uint8_t v) { ledcWrite(0, v); }
 inline void displayInit() {
   tft.begin(TFT_SPI_HZ);
   tft.setRotation(TFT_ROTATION);
+  // The Sunton 2432S024R's ILI9341 runs the panel in RGB order, but
+  // Adafruit_ILI9341 hardcodes the BGR bit on in every setRotation() call.
+  // Resend MADCTL with the BGR bit cleared so reds and blues stop swapping.
+  // Bits: MY=0x80, MX=0x40, MV=0x20 (set per rotation), BGR=0x08 (cleared).
+  static const uint8_t MADCTL_RGB[4] = { 0x40, 0x20, 0x80, 0xE0 };
+  uint8_t m = MADCTL_RGB[TFT_ROTATION & 3];
+  tft.sendCommand(ILI9341_MADCTL, &m, 1);
   tft.fillScreen(COL_BG);
 }
 
