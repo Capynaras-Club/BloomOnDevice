@@ -10,7 +10,7 @@ on:
 
 jobs:
   firmware:
-    name: Compile firmware (esp32-c3-devkitm-1)
+    name: Compile firmware (esp32-2432S024R)
     runs-on: ubuntu-latest
 
     steps:
@@ -39,18 +39,18 @@ jobs:
           pip install platformio
 
       - name: Build
-        run: pio run -e esp32-c3-devkitm-1
+        run: pio run -e esp32-2432S024R
 
       - name: Report sizes
-        run: pio run -e esp32-c3-devkitm-1 --target size
+        run: pio run -e esp32-2432S024R --target size
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-esp32-c3
+          name: firmware-esp32-2432S024R
           path: |
-            .pio/build/esp32-c3-devkitm-1/firmware.bin
-            .pio/build/esp32-c3-devkitm-1/firmware.elf
-            .pio/build/esp32-c3-devkitm-1/bootloader.bin
-            .pio/build/esp32-c3-devkitm-1/partitions.bin
+            .pio/build/esp32-2432S024R/firmware.bin
+            .pio/build/esp32-2432S024R/firmware.elf
+            .pio/build/esp32-2432S024R/bootloader.bin
+            .pio/build/esp32-2432S024R/partitions.bin
           if-no-files-found: error

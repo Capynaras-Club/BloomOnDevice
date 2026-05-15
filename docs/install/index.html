@@ -114,9 +114,9 @@
     <main>
       <h1>Install Baby Stats Display <span class="pill">nightly</span></h1>
       <p class="subtitle">
-        A bedside baby tracker on an ESP32-C3 + ILI9341 touchscreen. This
-        page flashes the firmware to your device directly from the browser
-        — no toolchain, no command line.
+        A bedside baby tracker on the Sunton ESP32-2432S024R board (CYD 2.4"
+        resistive). This page flashes the firmware to your device directly
+        from the browser — no toolchain, no command line.
       </p>
 
       <div id="browser-warn" class="browser-warn">
@@ -128,8 +128,10 @@
 
       <h2>1 — Plug it in</h2>
       <p>
-        Connect the ESP32-C3 to your computer with a USB-C
-        <strong>data</strong> cable. Power-only cables won't work.
+        Connect the board to your computer with a USB-C
+        <strong>data</strong> cable. Power-only cables won't work. If your
+        OS doesn't see the board, install the
+        <a href="https://www.wch-ic.com/downloads/CH341SER_ZIP.html">CH340 driver</a>.
       </p>
 
       <h2>2 — Click install</h2>
