@@ -7,13 +7,27 @@ on:
       - "v*.*.*"
   workflow_dispatch:
 
+# Pages deploy needs id-token to mint the deploy token, pages: write to
+# publish, contents: write to push tags + create releases.
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+# A single concurrency group prevents two pushes-to-main from racing the
+# `nightly` tag and the Pages deploy.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   firmware:
     name: Build and publish firmware
     runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout
@@ -54,7 +68,7 @@ jobs:
           ls -la release
 
       # ---------------------------------------------------------------
-      # Tagged release (v1.2.3 etc.)
+      # GitHub Releases
       # ---------------------------------------------------------------
       - name: Publish tagged release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -64,11 +78,6 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: true
 
-      # ---------------------------------------------------------------
-      # Rolling "nightly" pre-release on every push to main.
-      # The `nightly` tag is moved to point at the latest main commit
-      # so the download URL stays stable across builds.
-      # ---------------------------------------------------------------
       - name: Move nightly tag
         if: github.ref == 'refs/heads/main'
         run: |
@@ -88,3 +97,28 @@ jobs:
           make_latest: false
           files: release/*
           fail_on_unmatched_files: true
+
+      # ---------------------------------------------------------------
+      # GitHub Pages — installer page + firmware co-located so the
+      # ESP Web Tools manifest's relative `firmware/*.bin` paths resolve.
+      # ---------------------------------------------------------------
+      - name: Stage Pages site
+        run: |
+          mkdir -p pages-site/firmware
+          cp -r docs/install/. pages-site/
+          cp release/firmware.bin   pages-site/firmware/
+          cp release/bootloader.bin pages-site/firmware/
+          cp release/partitions.bin pages-site/firmware/
+          ls -la pages-site pages-site/firmware
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages-site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

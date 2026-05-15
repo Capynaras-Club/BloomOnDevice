@@ -2,10 +2,20 @@
 
 ![build](https://github.com/Capynaras-Club/BloomOnDevice/actions/workflows/build.yml/badge.svg)
 
+> **Just want to build one?** Head to **[GETTING_STARTED.md](GETTING_STARTED.md)**
+> — a zero-knowledge walkthrough with the bill of materials, wiring, and a
+> one-click in-browser installer. No toolchain required.
+>
+> Or open the installer directly:
+> **[capynaras-club.github.io/BloomOnDevice/install/](https://capynaras-club.github.io/BloomOnDevice/install/)**
+
 Bedside baby tracker on ESP32-C3 with a 2.4" ILI9341 TFT touchscreen. Tap to
 log a feed, diaper, or sleep. See the last event of each type, today's count,
 the next few hours of weather, and three days of history. All times shown in
 24-hour format.
+
+The rest of this README covers building from source. New users should start
+with [GETTING_STARTED.md](GETTING_STARTED.md) instead.
 
 ---
 
@@ -330,6 +340,13 @@ src/
   ui.h         — screen enum, WiFi-aware navigation
 .github/workflows/build.yml    — PlatformIO compile on every push/PR
 .github/workflows/release.yml  — nightly + tagged firmware releases
+                                  + GitHub Pages deploy of docs/install/
+
+docs/install/
+  index.html      — ESP Web Tools browser-based installer
+  manifest.json   — chip family + flash offsets for esp-web-tools
+
+GETTING_STARTED.md  — zero-knowledge walkthrough for end users
 platformio.ini               — board, libs, partition scheme
 ```
 
