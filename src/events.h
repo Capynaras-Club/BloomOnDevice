@@ -17,7 +17,8 @@ extern uint32_t nextEventId;
 
 void     saveEvents();
 bool     loadEvents();
-void     pruneOldEvents();
+// Returns true iff any events were dropped. Does NOT save — caller decides.
+bool     pruneOldEvents();
 
 inline uint32_t dayStartOffset(uint8_t daysBack) {
   time_t now = time(nullptr);
@@ -28,6 +29,11 @@ inline uint32_t dayStartOffset(uint8_t daysBack) {
 }
 
 inline uint32_t logEvent(uint8_t type, uint16_t duration = 0) {
+  // Prune stale events first so we never write the new event into flash
+  // alongside ones we're about to drop on the next boot. One flash write
+  // per logged event, regardless of whether pruning happened.
+  pruneOldEvents();
+
   if (eventCount >= MAX_EVENTS) {
     memmove(&eventLog[0], &eventLog[1], (MAX_EVENTS - 1) * sizeof(Event));
     eventCount = MAX_EVENTS - 1;

@@ -47,7 +47,7 @@ bool loadEvents() {
   return true;
 }
 
-void pruneOldEvents() {
+bool pruneOldEvents() {
   uint32_t cutoff = dayStartOffset(HISTORY_DAYS);
   uint16_t write = 0;
   for (uint16_t i = 0; i < eventCount; i++) {
@@ -56,8 +56,7 @@ void pruneOldEvents() {
       write++;
     }
   }
-  if (write != eventCount) {
-    eventCount = write;
-    saveEvents();
-  }
+  if (write == eventCount) return false;
+  eventCount = write;
+  return true;
 }
