@@ -184,7 +184,7 @@ void setup() {
   if (pruneOldEvents()) saveEvents();
 
   // Splash
-  drawTextCentered(SCREEN_W / 2, 100, "Bloom",  COL_TEXT, 3);
+  drawTextCentered(SCREEN_W / 2, 100, "Bloom on Device", COL_TEXT, 2);
   drawTextCentered(SCREEN_W / 2, 140, "starting...", COL_TEXT_DIM, 1);
 
   // WiFi — connects to saved creds, or runs the WiFiManager captive
