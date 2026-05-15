@@ -215,7 +215,11 @@ void setup() {
 void loop() {
   bool needsRender = false;
 
-  if (touch.touched()) {
+  // Use the T_IRQ pin directly: XPT2046 pulls it LOW when a finger is on
+  // the panel and the 10K pull-up on the Sunton CYD trace keeps it HIGH
+  // otherwise. Polling touch.touched() over SPI gave us false positives
+  // (the screen kept "blinking" because every loop re-rendered).
+  if (digitalRead(PIN_TOUCH_IRQ) == LOW) {
     uint32_t now = millis();
     if (now - lastTouch > TOUCH_DEBOUNCE_MS) {
       lastTouch = now;
@@ -224,6 +228,8 @@ void loop() {
       TS_Point p = touch.getPoint();
       uint16_t x = toScreenX(p.x);
       uint16_t y = toScreenY(p.y);
+      Serial.printf("[touch] raw=(%4u,%4u) z=%4u  screen=(%3u,%3u)\n",
+                    p.x, p.y, p.z, x, y);
       handleTouch(x, y);
       needsRender = true;
     }

@@ -35,9 +35,9 @@
 // Display geometry — landscape 320x240
 // =========================================================================
 
-#define SCREEN_W        320
-#define SCREEN_H        240
-#define TFT_ROTATION    3
+#define SCREEN_W        240
+#define SCREEN_H        320
+#define TFT_ROTATION    0
 
 // =========================================================================
 // Touch calibration (raw XPT2046 min/max)
@@ -84,7 +84,7 @@
 // =========================================================================
 
 #define TOUCH_DEBOUNCE_MS   200
-#define TIMER_REFRESH_MS   5000
+#define TIMER_REFRESH_MS  60000
 #define WEATHER_REFRESH_MS 1800000UL    // 30 min
 #define DELETE_CONFIRM_MS  2000
 
