@@ -1,4 +1,4 @@
-// Baby Stats Display — Sunton ESP32-2432S024R + ILI9341 + XPT2046
+// Bloom on Device — Sunton ESP32-2432S024R + ILI9341 + XPT2046
 //
 // Five-screen bedside display: Forecast | Stats | Today | Yesterday | 2 Days Ago.
 // Stats screen logs feeds, diapers and sleeps; log screens page through history
@@ -170,7 +170,7 @@ void handleTouch(uint16_t x, uint16_t y) {
 void setup() {
   Serial.begin(115200);
   delay(100);
-  Serial.println("\n[boot] baby stats display");
+  Serial.println("\n[boot] bloom on device");
 
   // Split SPI: TFT on HSPI, touch on the default SPI (VSPI).
   tftSPI.begin(PIN_TFT_SCK, PIN_TFT_MISO, PIN_TFT_MOSI, PIN_TFT_CS);
@@ -184,11 +184,11 @@ void setup() {
   if (pruneOldEvents()) saveEvents();
 
   // Splash
-  drawTextCentered(SCREEN_W / 2, 100, "Baby Stats",  COL_TEXT, 3);
+  drawTextCentered(SCREEN_W / 2, 100, "Bloom",  COL_TEXT, 3);
   drawTextCentered(SCREEN_W / 2, 140, "starting...", COL_TEXT_DIM, 1);
 
   // WiFi — connects to saved creds, or runs the WiFiManager captive
-  // portal at "BabyStatsSetup" until a network is configured or the
+  // portal at "BloomSetup" until a network is configured or the
   // portal times out. Returns false → offline mode.
   drawTextCentered(SCREEN_W / 2, 160, "connecting wifi...", COL_TEXT_DIM, 1);
   if (WifiMgr::ensureConnected()) {

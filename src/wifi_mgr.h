@@ -4,7 +4,7 @@
 //
 // We delegate the SoftAP / DNS / web-form work to tzapu's WiFiManager. It:
 //   - reads saved credentials from NVS (its own namespace),
-//   - if none or stale, opens a "BabyStatsSetup" AP with a DNS captive portal
+//   - if none or stale, opens a "BloomSetup" AP with a DNS captive portal
 //     so any URL on the connected client redirects to the config form,
 //     and blocks here until the user submits or the portal times out,
 //   - persists credentials on success.
@@ -15,7 +15,7 @@
 #include <time.h>
 #include "config.h"
 
-#define AP_SSID                 "BabyStatsSetup"
+#define AP_SSID                 "BloomSetup"
 #define WIFI_CONNECT_TIMEOUT_S  15
 #define PORTAL_TIMEOUT_S        180
 
@@ -33,7 +33,7 @@ inline bool ensureConnected() {
   wm.setConfigPortalTimeout(PORTAL_TIMEOUT_S);
   wm.setConnectTimeout(WIFI_CONNECT_TIMEOUT_S);
   wm.setDarkMode(true);
-  wm.setTitle("Baby Stats Setup");
+  wm.setTitle("Bloom on Device Setup");
 
   bool ok = wm.autoConnect(AP_SSID);
   Serial.printf("[wifi] %s\n", ok ? "connected" : "offline");

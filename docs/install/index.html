@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Install Baby Stats Display</title>
+    <title>Install Bloom on Device</title>
     <link rel="canonical" href="https://capynaras-club.github.io/BloomOnDevice/install/" />
-    <meta name="description" content="One-click installer for the Baby Stats Display firmware, runs entirely in the browser via WebSerial." />
+    <meta name="description" content="One-click installer for the Bloom on Device firmware, runs entirely in the browser via WebSerial." />
 
     <script
       type="module"
@@ -30,6 +30,10 @@
         background: var(--bg);
         color: var(--text);
         line-height: 1.55;
+        /* Tells the browser the page is dark, so the ESP Web Tools install
+           dialog (Material Design 3) picks its dark color scheme and renders
+           the Connect button with light text on the dark surface. */
+        color-scheme: dark;
       }
       main {
         max-width: 640px;
@@ -69,16 +73,19 @@
         margin: 24px 0 16px;
         text-align: center;
       }
-      esp-web-install-button {
-        --esp-tools-button-color: var(--bg);
-        --esp-tools-button-background-color: var(--accent);
-        --esp-tools-button-text-color: var(--bg);
-      }
+      /* Style only the install button itself via ::part. Avoid setting the
+         --esp-tools-button-* CSS variables on <esp-web-install-button>
+         because they cascade into the install dialog's shadow DOM and were
+         making the "Connect" button render dark text on a dark surface. */
       esp-web-install-button::part(button) {
+        background: var(--accent);
+        color: var(--bg);
         font-size: 1.1rem;
         padding: 12px 24px;
         border-radius: 8px;
         font-weight: 600;
+        border: none;
+        cursor: pointer;
       }
       .browser-warn {
         background: var(--warn-bg);
@@ -112,7 +119,7 @@
   </head>
   <body>
     <main>
-      <h1>Install Baby Stats Display <span class="pill">nightly</span></h1>
+      <h1>Install Bloom on Device <span class="pill">nightly</span></h1>
       <p class="subtitle">
         A bedside baby tracker on the Sunton ESP32-2432S024R board (CYD 2.4"
         resistive). This page flashes the firmware to your device directly
@@ -149,10 +156,10 @@
       <h2>3 — Connect to WiFi</h2>
       <p>
         After flashing, the board reboots and creates a setup WiFi network
-        called <code>BabyStatsSetup</code>. From your phone:
+        called <code>BloomSetup</code>. From your phone:
       </p>
       <ol>
-        <li>Connect to <code>BabyStatsSetup</code> (no password).</li>
+        <li>Connect to <code>BloomSetup</code> (no password).</li>
         <li>
           A setup page should open automatically. If it doesn't, open any
           browser and go to <code>http://192.168.4.1</code>.
