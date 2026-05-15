@@ -15,6 +15,31 @@ extern uint32_t pendingDeleteId;
 extern uint32_t pendingDeleteMs;
 
 // =========================================================================
+// Layout constants — portrait 240x320
+//
+//   y=0..24    header (clock + city)
+//   y=28..284  body  (3 stacked stat cards, log rows, or forecast)
+//   y=284..320 nav bar (< label >)
+// =========================================================================
+
+#define HDR_H            24
+#define NAV_Y           284
+#define NAV_H            36
+#define BODY_Y           28
+#define BODY_H          (NAV_Y - BODY_Y)
+
+#define CARD_X            8
+#define CARD_W          (SCREEN_W - 16)
+#define CARD_H           82
+#define CARD_GAP          2
+#define CARD_FEED_Y      BODY_Y
+#define CARD_DIAPER_Y   (CARD_FEED_Y   + CARD_H + CARD_GAP)
+#define CARD_SLEEP_Y    (CARD_DIAPER_Y + CARD_H + CARD_GAP)
+
+#define LOG_ROW_H        42
+#define LOG_ROW_Y0       50
+
+// =========================================================================
 // Time formatting (24h)
 // =========================================================================
 
@@ -88,7 +113,7 @@ inline void drawTextCentered(int16_t cx, int16_t y, const char* s,
 // =========================================================================
 
 inline void drawHeader() {
-  tft.fillRect(0, 0, SCREEN_W, 24, COL_BAR);
+  tft.fillRect(0, 0, SCREEN_W, HDR_H, COL_BAR);
 
   char clock[8];
   getClockString(clock, sizeof(clock));
@@ -111,18 +136,18 @@ inline void drawHeader() {
 // =========================================================================
 
 inline void drawNavBar(Screen s) {
-  tft.fillRect(0, 204, SCREEN_W, 36, COL_BAR);
-  tft.drawLine(0, 204, SCREEN_W, 204, COL_DIVIDER);
+  tft.fillRect(0, NAV_Y, SCREEN_W, NAV_H, COL_BAR);
+  tft.drawLine(0, NAV_Y, SCREEN_W, NAV_Y, COL_DIVIDER);
 
   tft.setTextSize(3);
   if (hasLeftArrow(s)) {
     tft.setTextColor(COL_TEXT);
-    tft.setCursor(14, 212);
+    tft.setCursor(14, NAV_Y + 8);
     tft.print("<");
   }
   if (hasRightArrow(s)) {
     tft.setTextColor(COL_TEXT);
-    tft.setCursor(SCREEN_W - 28, 212);
+    tft.setCursor(SCREEN_W - 28, NAV_Y + 8);
     tft.print(">");
   }
 
@@ -136,30 +161,32 @@ inline void drawNavBar(Screen s) {
     case SCREEN_YESTERDAY: label = "Yesterday";  break;
     case SCREEN_TWO_DAYS:  label = "2 Days Ago"; break;
   }
-  drawTextCentered(SCREEN_W / 2, 220, label, COL_TEXT_DIM, 1);
+  drawTextCentered(SCREEN_W / 2, NAV_Y + 22, label, COL_TEXT_DIM, 1);
 }
 
 // =========================================================================
-// Stats screen — three cards
+// Stats screen — three horizontal cards stacked vertically
 // =========================================================================
 
-inline void drawStatCard(int16_t x, const char* title,
+inline void drawStatCard(int16_t y, const char* title,
                          uint16_t fg, uint16_t bg, uint8_t type) {
-  const int16_t w = 100;
-  const int16_t h = 172;
-  const int16_t y = 28;
+  tft.fillRoundRect(CARD_X, y, CARD_W, CARD_H, 6, bg);
+  tft.drawRoundRect(CARD_X, y, CARD_W, CARD_H, 6, fg);
 
-  tft.fillRoundRect(x, y, w, h, 6, bg);
-  tft.drawRoundRect(x, y, w, h, 6, fg);
+  drawTextAt(CARD_X + 12, y + 10, title, fg, 2);
 
-  drawTextCentered(x + w / 2, y + 8, title, fg, 2);
+  uint16_t count = countEventsForDay(0, type);
+  char dbuf[16];
+  snprintf(dbuf, sizeof(dbuf), "%u today", (unsigned)count);
+  int16_t cw = strlen(dbuf) * 6;
+  drawTextAt(CARD_X + CARD_W - cw - 12, y + 14, dbuf, fg, 1);
 
   const Event* last = getLastOfType(type);
   if (last) {
     char tbuf[8];
     getEventTimeString(last->timestamp, tbuf, sizeof(tbuf));
-    drawTextCentered(x + w / 2, y + 56, "Last", COL_TEXT_DIM, 1);
-    drawTextCentered(x + w / 2, y + 72, tbuf, COL_TEXT, 3);
+    drawTextAt(CARD_X + 12, y + 38, "Last", COL_TEXT_DIM, 1);
+    drawTextAt(CARD_X + 50, y + 34, tbuf, COL_TEXT, 2);
 
     uint32_t now = (uint32_t)time(nullptr);
     uint32_t mins = (now > last->timestamp) ? (now - last->timestamp) / 60 : 0;
@@ -168,22 +195,17 @@ inline void drawStatCard(int16_t x, const char* title,
     else           snprintf(buf, sizeof(buf), "%luh%lum",
                             (unsigned long)(mins / 60),
                             (unsigned long)(mins % 60));
-    drawTextCentered(x + w / 2, y + 108, buf, COL_TEXT_DIM, 1);
+    drawTextAt(CARD_X + 12, y + 62, buf, COL_TEXT_DIM, 1);
   } else {
-    drawTextCentered(x + w / 2, y + 72, "—", COL_TEXT_DIM, 3);
+    drawTextAt(CARD_X + 12, y + 38, "—", COL_TEXT_DIM, 2);
   }
-
-  uint16_t count = countEventsForDay(0, type);
-  char dbuf[16];
-  snprintf(dbuf, sizeof(dbuf), "%u today", (unsigned)count);
-  drawTextCentered(x + w / 2, y + 140, dbuf, fg, 1);
 }
 
 inline void drawStatsScreen() {
-  tft.fillRect(0, 24, SCREEN_W, 180, COL_BG);
-  drawStatCard(  0, "Feed",   COL_FEED,   COL_FEED_BG,   EV_FEED);
-  drawStatCard(106, "Diaper", COL_DIAPER, COL_DIAPER_BG, EV_DIAPER);
-  drawStatCard(218, "Sleep",  COL_SLEEP,  COL_SLEEP_BG,  EV_SLEEP);
+  tft.fillRect(0, HDR_H, SCREEN_W, NAV_Y - HDR_H, COL_BG);
+  drawStatCard(CARD_FEED_Y,   "Feed",   COL_FEED,   COL_FEED_BG,   EV_FEED);
+  drawStatCard(CARD_DIAPER_Y, "Diaper", COL_DIAPER, COL_DIAPER_BG, EV_DIAPER);
+  drawStatCard(CARD_SLEEP_Y,  "Sleep",  COL_SLEEP,  COL_SLEEP_BG,  EV_SLEEP);
 }
 
 inline void refreshTimerDisplay() {
@@ -213,11 +235,11 @@ inline uint16_t typeColor(uint8_t t) {
 }
 
 inline void drawLogScreen(uint8_t daysBack) {
-  tft.fillRect(0, 24, SCREEN_W, 180, COL_BG);
+  tft.fillRect(0, HDR_H, SCREEN_W, NAV_Y - HDR_H, COL_BG);
 
   char date[16];
   getDateString(daysBack, date, sizeof(date));
-  drawTextCentered(SCREEN_W / 2, 6, date, COL_TEXT_DIM, 1);
+  drawTextCentered(SCREEN_W / 2, HDR_H + 6, date, COL_TEXT_DIM, 1);
 
   const Event* day[64];
   uint16_t n = getEventsForDay(daysBack, day, 64);
@@ -226,16 +248,16 @@ inline void drawLogScreen(uint8_t daysBack) {
   if (totalPages == 0) totalPages = 1;
   if (logPage >= totalPages) logPage = totalPages - 1;
 
-  // Pagination buttons
   if (logPage > 0) {
-    tft.fillTriangle(SCREEN_W / 2 - 8, 46,
-                     SCREEN_W / 2 + 8, 46,
-                     SCREEN_W / 2,     30, COL_TEXT_DIM);
+    tft.fillTriangle(SCREEN_W / 2 - 8, LOG_ROW_Y0 - 4,
+                     SCREEN_W / 2 + 8, LOG_ROW_Y0 - 4,
+                     SCREEN_W / 2,     LOG_ROW_Y0 - 16, COL_TEXT_DIM);
   }
   if (logPage + 1 < totalPages) {
-    tft.fillTriangle(SCREEN_W / 2 - 8, 180,
-                     SCREEN_W / 2 + 8, 180,
-                     SCREEN_W / 2,     196, COL_TEXT_DIM);
+    int16_t y = LOG_ROW_Y0 + EVENTS_PER_PAGE * LOG_ROW_H + 4;
+    tft.fillTriangle(SCREEN_W / 2 - 8, y,
+                     SCREEN_W / 2 + 8, y,
+                     SCREEN_W / 2,     y + 12, COL_TEXT_DIM);
   }
 
   uint16_t start = logPage * EVENTS_PER_PAGE;
@@ -243,36 +265,35 @@ inline void drawLogScreen(uint8_t daysBack) {
     uint16_t idx = start + i;
     if (idx >= n) break;
     const Event* e = day[idx];
-    int16_t y = 32 + i * 30;
+    int16_t y = LOG_ROW_Y0 + i * LOG_ROW_H;
 
     bool armed = (pendingDeleteId == e->id);
     uint16_t rowBg = armed ? COL_DEL_ARM : COL_BAR;
-    tft.fillRoundRect(8, y, SCREEN_W - 16, 26, 4, rowBg);
+    tft.fillRoundRect(8, y, SCREEN_W - 16, LOG_ROW_H - 6, 4, rowBg);
 
     char tbuf[8];
     getEventTimeString(e->timestamp, tbuf, sizeof(tbuf));
-    drawTextAt(16, y + 8, tbuf, COL_TEXT, 1);
+    drawTextAt(16, y + 12, tbuf, COL_TEXT, 1);
 
-    drawTextAt(72, y + 8, typeLabel(e->type), typeColor(e->type), 1);
+    drawTextAt(72, y + 12, typeLabel(e->type), typeColor(e->type), 1);
 
     if (e->duration > 0) {
       char dbuf[16];
       snprintf(dbuf, sizeof(dbuf), "%u min", e->duration);
-      drawTextAt(160, y + 8, dbuf, COL_TEXT_DIM, 1);
+      drawTextAt(140, y + 12, dbuf, COL_TEXT_DIM, 1);
     }
 
-    // Delete X (armed = red box)
     uint16_t delColor = armed ? COL_DEL_CONFIRM : COL_TEXT_DIM;
     if (armed) {
-      tft.fillRoundRect(SCREEN_W - 30, y + 2, 22, 22, 3, COL_DEL_CONFIRM);
-      drawTextAt(SCREEN_W - 23, y + 8, "X", COL_TEXT, 1);
+      tft.fillRoundRect(SCREEN_W - 32, y + 6, 24, 24, 3, COL_DEL_CONFIRM);
+      drawTextAt(SCREEN_W - 23, y + 12, "X", COL_TEXT, 1);
     } else {
-      drawTextAt(SCREEN_W - 23, y + 8, "x", delColor, 1);
+      drawTextAt(SCREEN_W - 23, y + 12, "x", delColor, 1);
     }
   }
 
   if (n == 0) {
-    drawTextCentered(SCREEN_W / 2, 110, "No events", COL_TEXT_DIM, 2);
+    drawTextCentered(SCREEN_W / 2, 150, "No events", COL_TEXT_DIM, 2);
   }
 }
 
@@ -281,86 +302,83 @@ inline void drawLogScreen(uint8_t daysBack) {
 // =========================================================================
 
 inline void drawForecastHourly() {
-  tft.fillRect(0, 24, SCREEN_W, 180, COL_BG);
+  tft.fillRect(0, HDR_H, SCREEN_W, NAV_Y - HDR_H, COL_BG);
 
-  // Toggle arrows
   tft.fillTriangle(SCREEN_W / 2 - 8, 46,
                    SCREEN_W / 2 + 8, 46,
                    SCREEN_W / 2,     30, COL_TEXT);
   drawTextCentered(SCREEN_W / 2, 50, "Hourly", COL_TEXT_DIM, 1);
 
   if (!wxValid) {
-    drawTextCentered(SCREEN_W / 2, 110, "No data", COL_TEXT_DIM, 2);
+    drawTextCentered(SCREEN_W / 2, 150, "No data", COL_TEXT_DIM, 2);
     return;
   }
 
   char now[16];
   snprintf(now, sizeof(now), "%.1f C  %u%%",
            wxNow.temp, (unsigned)wxNow.humidity);
-  drawTextCentered(SCREEN_W / 2, 64, now, COL_TEXT, 2);
-  drawTextCentered(SCREEN_W / 2, 84, weatherCodeShort(wxNow.code),
+  drawTextCentered(SCREEN_W / 2, 70, now, COL_TEXT, 2);
+  drawTextCentered(SCREEN_W / 2, 92, weatherCodeShort(wxNow.code),
                    typeColor(EV_DIAPER), 1);
 
-  // 6 next hours as mini-cards
-  int16_t x0 = 8;
-  int16_t y  = 100;
-  int16_t cw = (SCREEN_W - 16) / 6;
+  // 6 hourly entries as full-width rows so they fit on a 240-wide screen
+  int16_t y0 = 116;
+  int16_t rh = 24;
   for (uint8_t i = 0; i < 6; i++) {
     if (wxHourly[i].ts == 0) break;
-    int16_t cx = x0 + i * cw;
+    int16_t y = y0 + i * rh;
 
     time_t t = wxHourly[i].ts;
     struct tm* tm = localtime(&t);
     char hbuf[6];
-    strftime(hbuf, sizeof(hbuf), "%H", tm);
+    strftime(hbuf, sizeof(hbuf), "%H:00", tm);
+    drawTextAt(16, y + 6, hbuf, COL_TEXT_DIM, 1);
 
-    drawTextCentered(cx + cw / 2, y, hbuf, COL_TEXT_DIM, 1);
+    char tbuf[10];
+    snprintf(tbuf, sizeof(tbuf), "%d C", (int)wxHourly[i].temp);
+    drawTextAt(90, y + 2, tbuf, COL_TEXT, 2);
 
-    char tbuf[8];
-    snprintf(tbuf, sizeof(tbuf), "%d", (int)wxHourly[i].temp);
-    drawTextCentered(cx + cw / 2, y + 14, tbuf, COL_TEXT, 2);
-
-    char rbuf[8];
+    char rbuf[10];
     snprintf(rbuf, sizeof(rbuf), "%u%%", (unsigned)wxHourly[i].rain);
     uint16_t rc = wxHourly[i].rain >= 30 ? COL_RAIN : COL_TEXT_DIM;
-    drawTextCentered(cx + cw / 2, y + 34, rbuf, rc, 1);
+    drawTextAt(180, y + 6, rbuf, rc, 1);
   }
 
-  drawTextCentered(SCREEN_W / 2, 180, "v 3-Day", COL_TEXT_DIM, 1);
+  drawTextCentered(SCREEN_W / 2, NAV_Y - 14, "v 3-Day", COL_TEXT_DIM, 1);
 }
 
 inline void drawForecastDaily() {
-  tft.fillRect(0, 24, SCREEN_W, 180, COL_BG);
+  tft.fillRect(0, HDR_H, SCREEN_W, NAV_Y - HDR_H, COL_BG);
   drawTextCentered(SCREEN_W / 2, 30, "^ Hourly", COL_TEXT_DIM, 1);
   drawTextCentered(SCREEN_W / 2, 50, "3-Day", COL_TEXT_DIM, 1);
 
   if (!wxValid) {
-    drawTextCentered(SCREEN_W / 2, 110, "No data", COL_TEXT_DIM, 2);
+    drawTextCentered(SCREEN_W / 2, 150, "No data", COL_TEXT_DIM, 2);
     return;
   }
 
   for (uint8_t i = 0; i < DAILY_SLOTS; i++) {
     if (wxDaily[i].ts == 0) break;
-    int16_t y = 68 + i * 38;
-    tft.fillRoundRect(8, y, SCREEN_W - 16, 32, 4, COL_BAR);
+    int16_t y = 80 + i * 56;
+    tft.fillRoundRect(8, y, SCREEN_W - 16, 48, 4, COL_BAR);
 
     time_t t = wxDaily[i].ts;
     struct tm* tm = localtime(&t);
     char dbuf[8];
     strftime(dbuf, sizeof(dbuf), "%a", tm);
-    drawTextAt(16, y + 10, dbuf, COL_TEXT, 2);
+    drawTextAt(16, y + 8, dbuf, COL_TEXT, 2);
 
     char hilo[20];
     snprintf(hilo, sizeof(hilo), "%d / %d C",
              (int)wxDaily[i].hi, (int)wxDaily[i].lo);
-    drawTextAt(80, y + 10, hilo, COL_TEXT, 2);
+    drawTextAt(16, y + 28, hilo, COL_TEXT, 1);
 
     char rbuf[10];
     snprintf(rbuf, sizeof(rbuf), "%u%%", (unsigned)wxDaily[i].rain);
     uint16_t rc = wxDaily[i].rain >= 30 ? COL_RAIN : COL_TEXT_DIM;
-    drawTextAt(220, y + 10, rbuf, rc, 2);
+    drawTextAt(SCREEN_W - 60, y + 8, rbuf, rc, 2);
 
-    drawTextAt(270, y + 10, weatherCodeShort(wxDaily[i].code),
+    drawTextAt(SCREEN_W - 60, y + 28, weatherCodeShort(wxDaily[i].code),
                typeColor(EV_DIAPER), 1);
   }
 }
