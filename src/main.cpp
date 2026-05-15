@@ -179,7 +179,7 @@ void setup() {
   touchInit();
   storageInit();
   loadEvents();
-  pruneOldEvents();
+  if (pruneOldEvents()) saveEvents();
 
   // Splash
   drawTextCentered(SCREEN_W / 2, 100, "Baby Stats",  COL_TEXT, 3);
