@@ -13,20 +13,22 @@ If you can plug in a USB cable and connect to WiFi, you can build this.
 
 ## 1. What you need
 
-| Part                                                         | Cost  | Where to look                          |
-|--------------------------------------------------------------|-------|----------------------------------------|
-| ESP32-C3-DevKitM-1 board                                     | ~$6   | AliExpress / Amazon — search the name  |
-| 2.4" ILI9341 TFT touchscreen, 320×240, with XPT2046 touch    | ~$8   | "2.4 inch SPI TFT XPT2046"             |
-| USB-C cable (must be a **data** cable, not just power)       | ~$3   | Anything you have lying around         |
-| Female-to-female jumper wires (10 wires)                     | ~$2   | "dupont jumper wires"                  |
+| Part                                                                | Cost  | Where to look                                  |
+|---------------------------------------------------------------------|-------|------------------------------------------------|
+| Sunton **ESP32-2432S024R** board (CYD 2.4" resistive)               | ~$10  | AliExpress / Amazon / Mercado Livre — "CYD 2.4 resistive" or the model number |
+| USB-C cable (must be a **data** cable, not just power)              | ~$3   | Anything you have lying around                 |
 
-Total: **~$15-20**.
+Total: **~$15**. No wiring, no soldering — the ESP32, 2.4" display, touch
+panel, microSD slot, speaker amp and USB-to-serial are all on a single PCB.
 
-Optional, for cordless use:
+> **Important:** make sure the listing says **`R`** (resistive, with the
+> XPT2046 touch chip), not the **`C`** (capacitive) variant. The two boards
+> use different touch hardware and need different firmware.
+
+Optional:
 
 | Part                                              | Cost  |
 |---------------------------------------------------|-------|
-| 1000 mAh LiPo battery + TP4056 charger module     | ~$5   |
 | 3D-printed enclosure (no STL provided here yet)   | —     |
 
 You'll also need:
@@ -39,32 +41,11 @@ You'll also need:
 
 ## 2. Wire it up
 
-You're connecting two boards together with 10 jumper wires. Each wire goes
-from one labeled pin on the ESP32 to one labeled pin on the display.
+Nothing to wire — everything is on the same PCB. Just plug the USB-C cable
+in. (If macOS or Windows can't see the board, install the CH340 driver from
+[WCH][ch340] — the board's USB-to-serial chip needs it.)
 
-| Display pin (silkscreen) | ESP32 pin    |
-|--------------------------|--------------|
-| `VCC` or `3.3V`          | `3V3`        |
-| `GND`                    | `GND`        |
-| `CS`                     | `GPIO10`     |
-| `RST` or `RESET`         | `GPIO4`      |
-| `DC` or `RS`             | `GPIO3`      |
-| `MOSI` or `SDI` or `DIN` | `GPIO7`      |
-| `SCK` or `CLK`           | `GPIO6`      |
-| `LED` or `BL`            | `GPIO5`      |
-| `MISO` or `SDO` or `DO`  | `GPIO2`      |
-| `T_CS`                   | `GPIO8`      |
-| `T_IRQ`                  | `GPIO9`      |
-
-(`T_CLK`, `T_DIN`, `T_DO` on the touch side share wires with the display —
-you don't need separate jumpers for them.)
-
-**Sanity checks:**
-
-- Wrong `VCC` is the most common mistake. Read the display silkscreen — if
-  it says `5V` only, that board needs a different power source. Most
-  modern boards accept 3.3V.
-- Wires can be loose on cheap jumpers. Tug each one gently after seating.
+[ch340]: https://www.wch-ic.com/downloads/CH341SER_ZIP.html
 
 ---
 
@@ -78,7 +59,7 @@ you don't need separate jumpers for them.)
    desktop. (Phone browsers don't have the right API.)
 3. Click **Install Baby Stats Display**.
 4. A pop-up will ask which serial port to use — pick the one that just
-   appeared (usually labeled "USB JTAG/serial debug unit" or similar).
+   appeared (usually labeled "USB-SERIAL CH340" or similar).
 5. Confirm and wait. The installer downloads ~1 MB and flashes the board.
    This takes about 30 seconds.
 6. When it says "Installation complete," unplug and reconnect, or hit the
@@ -165,14 +146,15 @@ to cancel.
 
 | What you see                       | What to try                                                    |
 |------------------------------------|----------------------------------------------------------------|
-| Black screen, board feels warm     | Power wires are swapped. Unplug. Recheck `VCC` ↔ `3V3`.        |
-| White screen, no graphics          | `CS` or `DC` is on the wrong pin. Recheck the wiring table.    |
-| Display works but touch doesn't    | Touch wires (`T_CS`, `T_IRQ`) on wrong pins.                   |
-| Garbled colours, flicker           | A jumper is loose, or wires are too long. Reseat them.         |
+| Black screen, board feels warm     | Bad USB cable or USB-C orientation. Try a different cable / port. |
+| White screen, no graphics          | You may have the `C` (capacitive) variant — this firmware is for the `R` (resistive, XPT2046) board. |
+| Display works but touch doesn't    | Same as above — confirm you have the **R** variant.            |
+| Garbled colours, flicker           | Try a shorter / better-quality USB cable.                      |
 | Stuck at "connecting wifi..."      | Wrong password. Hold BOOT during power-on to reopen setup.     |
 | Wrong city / weather               | VPN or mobile hotspot fooling the geolocation. Reconnect to home WiFi. |
 | Clock shows 1970                   | Time hasn't synced yet. Wait a minute, or check WiFi.          |
-| Browser installer can't find port  | Cable is power-only (no data). Try a different USB-C cable.    |
+| Browser installer can't find port  | Install the CH340 driver (link above), or try a different USB-C **data** cable. |
+| Installer can't connect to board   | Hold the **BOOT** button, tap **RST**, release **BOOT**, retry. |
 
 Still stuck? [Open an issue](https://github.com/Capynaras-Club/BloomOnDevice/issues/new/choose)
 with what you saw and a photo of your wiring.

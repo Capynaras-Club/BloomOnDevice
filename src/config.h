@@ -1,27 +1,34 @@
 #pragma once
 
 // =========================================================================
-// Pin definitions — ESP32-C3 to ILI9341 + XPT2046
+// Pin definitions — Sunton ESP32-2432S024R (CYD 2.4" resistive)
+//   - TFT (ILI9341)  on HSPI: SCK=14, MOSI=13, MISO=12, CS=15, DC=2, BL=27
+//   - Touch (XPT2046) on VSPI: SCK=25, MOSI=32, MISO=39, CS=33, IRQ=36
+//   - TFT RST is tied to the ESP_EN line, so the MCU pin is -1.
+//   - GPIO36 is RTC_GPIO0 → ext0 light-sleep wake works on Touch IRQ.
 // =========================================================================
 
-#define PIN_SCK         6
-#define PIN_MOSI        7
-#define PIN_MISO        2
+// TFT bus (HSPI)
+#define PIN_TFT_SCK     14
+#define PIN_TFT_MOSI    13
+#define PIN_TFT_MISO    12
+#define PIN_TFT_CS      15
+#define PIN_TFT_DC       2
+#define PIN_TFT_RST     -1
+#define PIN_BACKLIGHT   27
 
-#define PIN_TFT_CS     10
-#define PIN_TFT_DC      3
-#define PIN_TFT_RST     4
-
-#define PIN_TOUCH_CS    8
-#define PIN_TOUCH_IRQ   9
-
-#define PIN_BACKLIGHT   5
+// Touch bus (VSPI / default SPI)
+#define PIN_TOUCH_SCK   25
+#define PIN_TOUCH_MOSI  32
+#define PIN_TOUCH_MISO  39
+#define PIN_TOUCH_CS    33
+#define PIN_TOUCH_IRQ   36
 
 // =========================================================================
 // SPI speeds
 // =========================================================================
 
-#define TFT_SPI_HZ      27000000
+#define TFT_SPI_HZ      40000000
 #define TOUCH_SPI_HZ     2500000
 
 // =========================================================================

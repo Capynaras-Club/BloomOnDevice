@@ -11,7 +11,7 @@
 ## Hardware tested
 
 - [ ] Compiled in CI
-- [ ] Flashed and verified on an ESP32-C3 + ILI9341
+- [ ] Flashed and verified on a Sunton ESP32-2432S024R
 - [ ] Touch / WiFi / SPIFFS-LittleFS flows still work
 - [ ] N/A — docs / CI only
 

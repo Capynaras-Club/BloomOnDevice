@@ -14,7 +14,7 @@ body:
     id: board
     attributes:
       label: Board / display variant
-      placeholder: ESP32-C3-DevKitM-1 + generic ILI9341 + XPT2046
+      placeholder: Sunton ESP32-2432S024R (CYD 2.4" resistive)
     validations:
       required: true
 

@@ -1,4 +1,4 @@
-// Baby Stats Display — ESP32-C3 + ILI9341 + XPT2046
+// Baby Stats Display — Sunton ESP32-2432S024R + ILI9341 + XPT2046
 //
 // Five-screen bedside display: Forecast | Stats | Today | Yesterday | 2 Days Ago.
 // Stats screen logs feeds, diapers and sleeps; log screens page through history
@@ -26,7 +26,9 @@
 // Globals
 // =========================================================================
 
-Adafruit_ILI9341     tft(PIN_TFT_CS, PIN_TFT_DC, PIN_TFT_RST);
+// TFT on HSPI; touch is wired to a separate bus and uses the default SPI.
+SPIClass             tftSPI(HSPI);
+Adafruit_ILI9341     tft(&tftSPI, PIN_TFT_DC, PIN_TFT_CS, PIN_TFT_RST);
 XPT2046_Touchscreen  touch(PIN_TOUCH_CS, PIN_TOUCH_IRQ);
 
 Screen        currentScreen   = SCREEN_STATS;
@@ -68,10 +70,9 @@ void updatePowerState() {
   if (idle > SLEEP_TIMEOUT_MS && !isAsleep) {
     isAsleep = true;
     backlightSet(0);
-    // ESP32-C3 has no ext0/ext1 — use the GPIO wakeup source instead.
-    // T_IRQ pulls low on touch; wake on the low level.
-    gpio_wakeup_enable((gpio_num_t)PIN_TOUCH_IRQ, GPIO_INTR_LOW_LEVEL);
-    esp_sleep_enable_gpio_wakeup();
+    // T_IRQ (GPIO36 = RTC_GPIO0) pulls low on touch; ext0 wakes on the low
+    // level. ext0 is the classic-ESP32-friendly path for an RTC GPIO.
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_TOUCH_IRQ, 0);
     esp_light_sleep_start();
     // Resumes here on touch
     lastActivity = millis();
@@ -171,8 +172,9 @@ void setup() {
   delay(100);
   Serial.println("\n[boot] baby stats display");
 
-  // Shared SPI bus for display and touch
-  SPI.begin(PIN_SCK, PIN_MISO, PIN_MOSI);
+  // Split SPI: TFT on HSPI, touch on the default SPI (VSPI).
+  tftSPI.begin(PIN_TFT_SCK, PIN_TFT_MISO, PIN_TFT_MOSI, PIN_TFT_CS);
+  SPI.begin(PIN_TOUCH_SCK, PIN_TOUCH_MISO, PIN_TOUCH_MOSI, PIN_TOUCH_CS);
 
   backlightInit();
   displayInit();

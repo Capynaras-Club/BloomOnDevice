@@ -55,15 +55,15 @@ jobs:
           pip install platformio
 
       - name: Build
-        run: pio run -e esp32-c3-devkitm-1
+        run: pio run -e esp32-2432S024R
 
       - name: Stage firmware artifacts
         run: |
           mkdir -p release
-          cp .pio/build/esp32-c3-devkitm-1/firmware.bin   release/
-          cp .pio/build/esp32-c3-devkitm-1/firmware.elf   release/
-          cp .pio/build/esp32-c3-devkitm-1/bootloader.bin release/
-          cp .pio/build/esp32-c3-devkitm-1/partitions.bin release/
+          cp .pio/build/esp32-2432S024R/firmware.bin   release/
+          cp .pio/build/esp32-2432S024R/firmware.elf   release/
+          cp .pio/build/esp32-2432S024R/bootloader.bin release/
+          cp .pio/build/esp32-2432S024R/partitions.bin release/
           ( cd release && sha256sum * > SHA256SUMS )
           ls -la release
 

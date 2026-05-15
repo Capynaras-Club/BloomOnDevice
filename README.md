@@ -9,8 +9,10 @@
 > Or open the installer directly:
 > **[capynaras-club.github.io/BloomOnDevice/install/](https://capynaras-club.github.io/BloomOnDevice/install/)**
 
-Bedside baby tracker on ESP32-C3 with a 2.4" ILI9341 TFT touchscreen. Tap to
-log a feed, diaper, or sleep. See the last event of each type, today's count,
+Bedside baby tracker on the **Sunton ESP32-2432S024R** (CYD 2.4" resistive)
+— a single integrated PCB with an ESP32-WROOM-32, 2.4" ILI9341 240×320 TFT,
+XPT2046 resistive touch, microSD, and CH340C USB-C all on board. Tap to log
+a feed, diaper, or sleep. See the last event of each type, today's count,
 the next few hours of weather, and three days of history. All times shown in
 24-hour format.
 
@@ -57,48 +59,40 @@ with [GETTING_STARTED.md](GETTING_STARTED.md) instead.
 
 | Part | Notes |
 |---|---|
-| ESP32-C3-DevKitM-1 | Any ESP32-C3 module works; pin numbers in `src/config.h` are for the DevKitM-1 |
-| 2.4" ILI9341 TFT, 320×240, with XPT2046 touch | The common "MSP2402"-style boards work fine |
-| USB-C cable (data, not just power) | For flashing and serial monitor |
-| Dupont jumper wires, 10× | M-F if breadboarding the dev kit |
-| (optional) 3.7V LiPo + TP4056 charger | For battery operation |
+| Sunton **ESP32-2432S024R** | The 2.4" **resistive** (XPT2046) variant. Sold as "CYD 2.4 resistive" or by the model number. Look for the orange PCB with on-board ESP-WROOM-32, USB-C and CH340C. |
+| USB-C data cable | For flashing and serial monitor |
 | (optional) 3D-printed enclosure | Not provided here |
 
-The display module includes its own 3.3V regulator and level shifters on
-most variants, so it can be driven directly from the dev kit's 3V3 pin.
+> The `C` (capacitive) variant of this board uses a CST816 touch chip on
+> I2C, not XPT2046. The firmware won't drive its touch panel as-is — make
+> sure the **R** is in the part number.
 
 ---
 
 ## Wiring
 
-Single SPI bus shared between the display and the touch controller.
+Nothing to wire — everything is on the same PCB.
 
-| Signal      | ESP32-C3 GPIO | Display pin |
-|-------------|--------------:|------------:|
-| SPI Clock   | GPIO6         | `CLK` / `SCK` |
-| MOSI        | GPIO7         | `DIN` / `MOSI` |
-| MISO        | GPIO2         | `DO` / `MISO`  |
-| Display CS  | GPIO10        | `CS`           |
-| Display DC  | GPIO3         | `DC`           |
-| Display RST | GPIO4         | `RST`          |
-| Touch CS    | GPIO8         | `T_CS`         |
-| Touch IRQ   | GPIO9         | `T_IRQ`        |
-| Backlight   | GPIO5 (PWM)   | `LED`          |
-| Power       | 3V3           | `VCC`          |
-| Ground      | GND           | `GND`          |
+For reference, the on-board pin assignments the firmware expects (see
+`src/config.h`):
 
-Notes:
+| Signal      | ESP32 GPIO    | Bus       |
+|-------------|--------------:|-----------|
+| TFT SCK     | 14            | HSPI      |
+| TFT MOSI    | 13            | HSPI      |
+| TFT MISO    | 12            | HSPI      |
+| TFT CS      | 15            | HSPI      |
+| TFT DC      | 2             | —         |
+| TFT RST     | (tied to EN)  | —         |
+| Backlight   | 27 (PWM)      | —         |
+| Touch SCK   | 25            | VSPI      |
+| Touch MOSI  | 32            | VSPI      |
+| Touch MISO  | 39            | VSPI      |
+| Touch CS    | 33            | VSPI      |
+| Touch IRQ   | 36 (RTC GPIO) | ext0 wake |
 
-- The touch panel's `T_DIN`, `T_DO`, `T_CLK` lines share the bus with the
-  display, so they go to the same `MOSI`/`MISO`/`SCK` pins above.
-- `T_IRQ` **must** be on a pin that supports `ext0` light-sleep wakeup —
-  GPIO0–GPIO5 on the C3. GPIO9 is used here; if you change it, update
-  `PIN_TOUCH_IRQ` in `src/config.h`.
-- Some cheap modules want 5 V on `VCC` despite shipping with 3.3 V logic.
-  Read the silkscreen on yours. The `LED` pin tolerates 3.3 V PWM.
-
-If you change any pin, edit `src/config.h` and re-flash. Nothing else needs
-to change.
+The display and touch are on **separate** SPI buses, so `main.cpp` starts
+HSPI for the TFT and the default `SPI` (VSPI) for the XPT2046.
 
 ---
 
@@ -139,11 +133,11 @@ pio --version
    - `XPT2046_Touchscreen` (by Paul Stoffregen)
    - `ArduinoJson` (v7.x)
 4. Board settings:
-   - Board: **ESP32C3 Dev Module**
+   - Board: **ESP32 Dev Module**
    - Flash Size: **4MB (32Mb)**
+   - Flash Mode: **DIO**
    - Partition Scheme: **Default 4MB with spiffs** (formatted as LittleFS at first boot)
    - Upload Speed: **921600**
-   - USB CDC On Boot: **Enabled**
 
 ---
 
@@ -171,7 +165,8 @@ pio device monitor --port /dev/ttyACM0
 
 1. Open `src/main.cpp` — Arduino IDE will offer to put it in a sketch
    folder; accept.
-2. Connect the board over USB. The C3 enumerates as a CDC serial device.
+2. Connect the board over USB. The CH340C enumerates as a USB-to-serial
+   device — install the [WCH CH340 driver][ch340] if your OS doesn't see it.
 3. **Sketch → Upload** (`Ctrl+U`).
 4. Open the Serial Monitor at **115200 baud** to see boot logs.
 
@@ -189,11 +184,17 @@ with `esptool.py`:
 
 ```bash
 pip install esptool
-esptool.py --chip esp32c3 --port /dev/ttyACM0 --baud 921600 write_flash \
-  0x0000  bootloader.bin \
+esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 921600 write_flash \
+  0x1000  bootloader.bin \
   0x8000  partitions.bin \
   0x10000 firmware.bin
 ```
+
+If `esptool` can't enter the bootloader on its own, hold **BOOT**, tap
+**RST**, release **BOOT**, then retry — the CH340C's DTR/RTS handshake
+sometimes needs a hand.
+
+[ch340]: https://www.wch-ic.com/downloads/CH341SER_ZIP.html
 
 ---
 
@@ -221,7 +222,7 @@ The whole sequence takes about 10 seconds on a healthy network.
 
 Subsequent boots reuse the stored credentials and skip provisioning. To
 force re-provisioning, hold the BOOT button while powering on — or, if
-you'd rather, erase NVS with `esptool.py --chip esp32c3 erase_flash` and
+you'd rather, erase NVS with `esptool.py --chip esp32 erase_flash` and
 re-flash.
 
 **Offline mode:** if no WiFi is reachable, the device continues to boot
