@@ -185,7 +185,10 @@ void setup() {
 
   // Splash
   drawTextCentered(SCREEN_W / 2, 100, "Bloom on Device", COL_TEXT, 2);
-  drawTextCentered(SCREEN_W / 2, 140, "starting...", COL_TEXT_DIM, 1);
+  // Build stamp: __DATE__/__TIME__ are set by the compiler at this TU's
+  // build, so every flash shows a unique line — confirms what's running.
+  drawTextCentered(SCREEN_W / 2, 124, __DATE__ " " __TIME__, COL_TEXT_DIM, 1);
+  drawTextCentered(SCREEN_W / 2, 144, "starting...", COL_TEXT_DIM, 1);
 
   // WiFi — connects to saved creds, or runs the WiFiManager captive
   // portal at "BloomSetup" until a network is configured or the
@@ -195,11 +198,11 @@ void setup() {
   // sitting on the captive portal for up to 3 minutes, so show the SSID
   // and IP they need to join. Otherwise just say we're connecting.
   if (WifiMgr::hasSavedCredentials()) {
-    drawTextCentered(SCREEN_W / 2, 170, "connecting wifi...", COL_TEXT_DIM, 1);
+    drawTextCentered(SCREEN_W / 2, 174, "connecting wifi...", COL_TEXT_DIM, 1);
   } else {
-    drawTextCentered(SCREEN_W / 2, 170, "first-time setup:", COL_TEXT, 1);
-    drawTextCentered(SCREEN_W / 2, 188, "join wifi 'BloomSetup'", COL_TEXT, 1);
-    drawTextCentered(SCREEN_W / 2, 204, "then open 192.168.4.1", COL_TEXT_DIM, 1);
+    drawTextCentered(SCREEN_W / 2, 174, "first-time setup:", COL_TEXT, 1);
+    drawTextCentered(SCREEN_W / 2, 192, "join wifi 'BloomSetup'", COL_TEXT, 1);
+    drawTextCentered(SCREEN_W / 2, 208, "then open 192.168.4.1", COL_TEXT_DIM, 1);
   }
   if (WifiMgr::ensureConnected()) {
     hasWifi = true;
