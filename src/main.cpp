@@ -293,11 +293,25 @@ void loop() {
         needsRender = true;
       }
     } else {
-      // Logging rejects too so we can see what the panel is sending and
-      // tune TOUCH_Z_MIN/MAX if real taps fall outside the current band.
-      Serial.printf("[touch] REJECTED raw=(%4u,%4u) z=%4u (band %u..%u)\n",
-                    p.x, p.y, p.z,
-                    (unsigned)TOUCH_Z_MIN, (unsigned)TOUCH_Z_MAX);
+      // The XPT2046 on this board fires a spurious IRQ flood when its
+      // T_IRQ trace isn't well pulled up — every spurious edge calls
+      // getPoint() and gets a garbage z=4095. The gate above correctly
+      // rejects it, but logging every reject was drowning serial in
+      // hundreds of lines per second and masking real events. Rate
+      // limit so a real misbehaving panel is still visible (one line
+      // per second of noise) but the log stays readable.
+      static uint32_t lastRejectLog   = 0;
+      static uint32_t rejectsThisLog  = 0;
+      rejectsThisLog++;
+      uint32_t now = millis();
+      if (now - lastRejectLog > 1000) {
+        Serial.printf("[touch] REJECTED raw=(%4u,%4u) z=%4u  (%u rejects in %ums, band %u..%u)\n",
+                      p.x, p.y, p.z,
+                      (unsigned)rejectsThisLog, (unsigned)(now - lastRejectLog),
+                      (unsigned)TOUCH_Z_MIN, (unsigned)TOUCH_Z_MAX);
+        lastRejectLog = now;
+        rejectsThisLog = 0;
+      }
     }
   }
 

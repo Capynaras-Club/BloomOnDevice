@@ -38,12 +38,22 @@
 #define TOUCH_SPI_HZ     2500000
 
 // =========================================================================
-// Display geometry — landscape 320x240
+// Display geometry — portrait UI (240x320 logical) rendered onto a panel
+// that turned out to be landscape-native. Adafruit_ILI9341 assumes the
+// panel is 240×320 portrait native, so plain rotation 0/2 leaves 80 px
+// of unrendered RAM at the bottom of the visible window.
+//
+// TFT_ROTATION = 3 sets the MV bit in MADCTL, which transposes addressing
+// on the panel side: our 240×320 logical canvas maps onto the panel's
+// 320×240 physical pixels through the transpose. MX + MY also flip both
+// axes so logical (0,0) lands at physical top-left when the case is held
+// USB-C-down. The portrait UI design (3 cards stacked vertically) is
+// unchanged — only the panel-side mapping is.
 // =========================================================================
 
 #define SCREEN_W        240
 #define SCREEN_H        320
-#define TFT_ROTATION    2
+#define TFT_ROTATION    3
 
 // =========================================================================
 // Touch calibration (raw XPT2046 min/max)
