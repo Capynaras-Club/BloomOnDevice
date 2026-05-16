@@ -14,7 +14,8 @@ struct WeatherDaily   { uint32_t ts; float hi; float lo; uint8_t rain; uint8_t c
 struct Location {
   char  city[32];
   char  cc[4];
-  char  timezone[40];
+  char  timezone[40];        // IANA name from ip-api, e.g. "America/Sao_Paulo"
+  char  posix_tz[16];        // POSIX TZ string for configTzTime, e.g. "<-03>3"
   float lat;
   float lon;
   bool  valid;
@@ -46,11 +47,31 @@ inline bool fetchLocation() {
   strlcpy(location.timezone, doc["timezone"]    | "UTC",     sizeof(location.timezone));
   location.lat   = doc["lat"] | 0.0f;
   location.lon   = doc["lon"] | 0.0f;
+
+  // ip-api returns the UTC offset in seconds (positive = east of UTC).
+  // configTzTime() expects POSIX TZ, *not* an IANA name like
+  // "America/Sao_Paulo" — passing the IANA string silently fails and
+  // localtime() stays on UTC. Build a POSIX string from the offset
+  // instead: the sign convention is flipped (POSIX offset is the value
+  // to add to local time to get UTC), so UTC-3 becomes "<-03>3", UTC+9
+  // becomes "<+09>-9", etc.
+  int32_t off  = doc["offset"] | 0;
+  int     hrs  = off / 3600;
+  int     mins = (off >= 0 ? off : -off) % 3600 / 60;
+  if (mins == 0) {
+    snprintf(location.posix_tz, sizeof(location.posix_tz),
+             "<%+03d>%d", hrs, -hrs);
+  } else {
+    snprintf(location.posix_tz, sizeof(location.posix_tz),
+             "<%+03d:%02d>%d:%02d", hrs, mins, -hrs, mins);
+  }
+
   location.valid = true;
 
-  Serial.printf("[loc] %s, %s (%.4f, %.4f) tz=%s\n",
+  Serial.printf("[loc] %s, %s (%.4f, %.4f) tz=%s posix=%s\n",
                 location.city, location.cc,
-                location.lat, location.lon, location.timezone);
+                location.lat, location.lon,
+                location.timezone, location.posix_tz);
   return true;
 }
 

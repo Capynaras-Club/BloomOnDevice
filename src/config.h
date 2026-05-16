@@ -37,7 +37,7 @@
 
 #define SCREEN_W        240
 #define SCREEN_H        320
-#define TFT_ROTATION    0
+#define TFT_ROTATION    2
 
 // =========================================================================
 // Touch calibration (raw XPT2046 min/max)

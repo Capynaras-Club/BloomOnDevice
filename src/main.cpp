@@ -207,7 +207,7 @@ void setup() {
   if (WifiMgr::ensureConnected()) {
     hasWifi = true;
     if (fetchLocation()) {
-      WifiMgr::setTimezone(location.timezone);
+      WifiMgr::setTimezone(location.posix_tz);
       fetchWeather();
       lastWeatherFetch = millis();
     }
@@ -250,6 +250,12 @@ void loop() {
         handleTouch(x, y);
         needsRender = true;
       }
+    } else {
+      // Logging rejects too so we can see what the panel is sending and
+      // tune TOUCH_Z_MIN/MAX if real taps fall outside the current band.
+      Serial.printf("[touch] REJECTED raw=(%4u,%4u) z=%4u (band %u..%u)\n",
+                    p.x, p.y, p.z,
+                    (unsigned)TOUCH_Z_MIN, (unsigned)TOUCH_Z_MAX);
     }
   }
 
