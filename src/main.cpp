@@ -190,7 +190,17 @@ void setup() {
   // WiFi — connects to saved creds, or runs the WiFiManager captive
   // portal at "BloomSetup" until a network is configured or the
   // portal times out. Returns false → offline mode.
-  drawTextCentered(SCREEN_W / 2, 160, "connecting wifi...", COL_TEXT_DIM, 1);
+  //
+  // Tell the user what's happening: if there are no saved creds we'll be
+  // sitting on the captive portal for up to 3 minutes, so show the SSID
+  // and IP they need to join. Otherwise just say we're connecting.
+  if (WifiMgr::hasSavedCredentials()) {
+    drawTextCentered(SCREEN_W / 2, 170, "connecting wifi...", COL_TEXT_DIM, 1);
+  } else {
+    drawTextCentered(SCREEN_W / 2, 170, "first-time setup:", COL_TEXT, 1);
+    drawTextCentered(SCREEN_W / 2, 188, "join wifi 'BloomSetup'", COL_TEXT, 1);
+    drawTextCentered(SCREEN_W / 2, 204, "then open 192.168.4.1", COL_TEXT_DIM, 1);
+  }
   if (WifiMgr::ensureConnected()) {
     hasWifi = true;
     if (fetchLocation()) {
@@ -215,23 +225,28 @@ void setup() {
 void loop() {
   bool needsRender = false;
 
-  // Use the T_IRQ pin directly: XPT2046 pulls it LOW when a finger is on
-  // the panel and the 10K pull-up on the Sunton CYD trace keeps it HIGH
-  // otherwise. Polling touch.touched() over SPI gave us false positives
-  // (the screen kept "blinking" because every loop re-rendered).
-  if (digitalRead(PIN_TOUCH_IRQ) == LOW) {
-    uint32_t now = millis();
-    if (now - lastTouch > TOUCH_DEBOUNCE_MS) {
-      lastTouch = now;
-      onActivity();
+  // Touch sanity gate. Two conditions must both hold:
+  //   1. tirqTouched() — the XPT2046 lib's FALLING-edge ISR has fired
+  //      since the last getPoint(). A statically-low T_IRQ (which we saw
+  //      on this board) trips digitalRead() forever but only fires the
+  //      ISR once, so this filters that case.
+  //   2. z is in [TOUCH_Z_MIN, TOUCH_Z_MAX]. SPI reads from a misbehaving
+  //      XPT2046 come back as z=0 or z=4095; real taps live in the middle.
+  if (touch.tirqTouched()) {
+    TS_Point p = touch.getPoint();
+    if (p.z >= TOUCH_Z_MIN && p.z <= TOUCH_Z_MAX) {
+      uint32_t now = millis();
+      if (now - lastTouch > TOUCH_DEBOUNCE_MS) {
+        lastTouch = now;
+        onActivity();
 
-      TS_Point p = touch.getPoint();
-      uint16_t x = toScreenX(p.x);
-      uint16_t y = toScreenY(p.y);
-      Serial.printf("[touch] raw=(%4u,%4u) z=%4u  screen=(%3u,%3u)\n",
-                    p.x, p.y, p.z, x, y);
-      handleTouch(x, y);
-      needsRender = true;
+        uint16_t x = toScreenX(p.x);
+        uint16_t y = toScreenY(p.y);
+        Serial.printf("[touch] raw=(%4u,%4u) z=%4u  screen=(%3u,%3u)\n",
+                      p.x, p.y, p.z, x, y);
+        handleTouch(x, y);
+        needsRender = true;
+      }
     }
   }
 

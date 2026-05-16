@@ -88,6 +88,11 @@
 #define WEATHER_REFRESH_MS 1800000UL    // 30 min
 #define DELETE_CONFIRM_MS  2000
 
+// Real XPT2046 taps fall in roughly 100..3500. Below = noise, at/above 4000 =
+// the chip isn't responding (MISO floating, garbage bytes). Both filtered.
+#define TOUCH_Z_MIN          100
+#define TOUCH_Z_MAX         3500
+
 #define EVENTS_PER_PAGE      5
 #define HISTORY_DAYS         3
 
