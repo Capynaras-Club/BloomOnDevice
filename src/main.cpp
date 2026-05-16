@@ -70,14 +70,31 @@ void updatePowerState() {
   if (idle > SLEEP_TIMEOUT_MS && !isAsleep) {
     isAsleep = true;
     backlightSet(0);
-    // T_IRQ (GPIO36 = RTC_GPIO0) pulls low on touch; ext0 wakes on the low
-    // level. ext0 is the classic-ESP32-friendly path for an RTC GPIO.
+    // Two wake sources, OR-ed:
+    //   - ext0 on T_IRQ falling, for actual taps (RTC GPIO, classic-ESP32
+    //     friendly path)
+    //   - timer every SLEEP_WAKE_PERIOD_S, so the clock/weather still
+    //     refreshes even if T_IRQ is stuck low (we've seen it on this
+    //     panel) or stuck high (broken pull-up) and the device would
+    //     otherwise appear dead until a power cycle.
     esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_TOUCH_IRQ, 0);
+    esp_sleep_enable_timer_wakeup((uint64_t)SLEEP_WAKE_PERIOD_S * 1000000ULL);
     esp_light_sleep_start();
-    // Resumes here on touch
-    lastActivity = millis();
+
+    esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+    bool touched = (cause == ESP_SLEEP_WAKEUP_EXT0);
+
+    // Resumes here on wake. Touch counts as new activity; timer wakes do
+    // not — we just paint and immediately fall back toward sleep so we
+    // don't burn the backlight overnight.
     isDimmed = isAsleep = false;
-    backlightSet(BACKLIGHT_FULL);
+    if (touched) {
+      lastActivity = millis();
+      backlightSet(BACKLIGHT_FULL);
+    } else {
+      backlightSet(BACKLIGHT_DIM);
+      lastActivity = millis() - SLEEP_TIMEOUT_MS;  // expire immediately
+    }
     renderScreen(currentScreen);
   } else if (idle > DIM_TIMEOUT_MS && !isDimmed && !isAsleep) {
     backlightSet(BACKLIGHT_DIM);
@@ -190,29 +207,54 @@ void setup() {
   drawTextCentered(SCREEN_W / 2, 124, __DATE__ " " __TIME__, COL_TEXT_DIM, 1);
   drawTextCentered(SCREEN_W / 2, 144, "starting...", COL_TEXT_DIM, 1);
 
-  // WiFi — connects to saved creds, or runs the WiFiManager captive
-  // portal at "BloomSetup" until a network is configured or the
-  // portal times out. Returns false → offline mode.
-  //
-  // Tell the user what's happening: if there are no saved creds we'll be
-  // sitting on the captive portal for up to 3 minutes, so show the SSID
-  // and IP they need to join. Otherwise just say we're connecting.
-  if (WifiMgr::hasSavedCredentials()) {
-    drawTextCentered(SCREEN_W / 2, 174, "connecting wifi...", COL_TEXT_DIM, 1);
-  } else {
-    drawTextCentered(SCREEN_W / 2, 174, "first-time setup:", COL_TEXT, 1);
-    drawTextCentered(SCREEN_W / 2, 192, "join wifi 'BloomSetup'", COL_TEXT, 1);
-    drawTextCentered(SCREEN_W / 2, 208, "then open 192.168.4.1", COL_TEXT_DIM, 1);
-  }
-  if (WifiMgr::ensureConnected()) {
-    hasWifi = true;
-    if (fetchLocation()) {
-      WifiMgr::setTimezone(location.posix_tz);
-      fetchWeather();
-      lastWeatherFetch = millis();
+  // Skip-WiFi escape hatch. WifiMgr::ensureConnected() can block for up
+  // to PORTAL_TIMEOUT_S (3 minutes) on first boot waiting for the user
+  // to provision in the captive portal — frustrating when you just want
+  // to test the UI offline or the touch panel is misbehaving and you
+  // can't tap your way past it. Give the user a 3-second window where
+  // holding BOOT goes straight to offline mode.
+  pinMode(PIN_BOOT_BUTTON, INPUT);
+  drawTextCentered(SCREEN_W / 2, 174, "hold BOOT to skip wifi", COL_TEXT_DIM, 1);
+  bool skipWifi = false;
+  uint32_t skipStart = millis();
+  while (millis() - skipStart < SKIP_WIFI_WINDOW_MS) {
+    if (digitalRead(PIN_BOOT_BUTTON) == LOW) {
+      skipWifi = true;
+      Serial.println("[wifi] skipped: BOOT held during splash");
+      break;
     }
-  } else {
+    delay(20);
+  }
+
+  // Wipe the skip prompt; we'll overwrite it with one of the actual
+  // status lines below.
+  tft.fillRect(0, 168, SCREEN_W, 56, COL_BG);
+
+  if (skipWifi) {
     hasWifi = false;
+    drawTextCentered(SCREEN_W / 2, 174, "offline mode (wifi skipped)", COL_TEXT_DIM, 1);
+    delay(600);
+  } else {
+    // WiFi — connects to saved creds, or runs the WiFiManager captive
+    // portal at "BloomSetup". Tell the user what's happening so first
+    // boot doesn't look frozen for 3 minutes.
+    if (WifiMgr::hasSavedCredentials()) {
+      drawTextCentered(SCREEN_W / 2, 174, "connecting wifi...", COL_TEXT_DIM, 1);
+    } else {
+      drawTextCentered(SCREEN_W / 2, 174, "first-time setup:", COL_TEXT, 1);
+      drawTextCentered(SCREEN_W / 2, 192, "join wifi 'BloomSetup'", COL_TEXT, 1);
+      drawTextCentered(SCREEN_W / 2, 208, "then open 192.168.4.1", COL_TEXT_DIM, 1);
+    }
+    if (WifiMgr::ensureConnected()) {
+      hasWifi = true;
+      if (fetchLocation()) {
+        WifiMgr::setTimezone(location.posix_tz);
+        fetchWeather();
+        lastWeatherFetch = millis();
+      }
+    } else {
+      hasWifi = false;
+    }
   }
 
   currentScreen = SCREEN_STATS;

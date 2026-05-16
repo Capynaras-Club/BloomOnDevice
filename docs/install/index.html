@@ -115,6 +115,20 @@
         margin-left: 8px;
         vertical-align: middle;
       }
+      .build-info {
+        color: var(--text-dim);
+        font-size: 0.82em;
+        margin: -16px 0 24px;
+      }
+      .build-info code {
+        background: transparent;
+        padding: 0;
+      }
+      .build-info a {
+        color: var(--text-dim);
+        text-decoration: none;
+        border-bottom: 1px dotted var(--text-dim);
+      }
     </style>
   </head>
   <body>
@@ -124,6 +138,13 @@
         A bedside baby tracker on the Sunton ESP32-2432S024R board (CYD 2.4"
         resistive). This page flashes the firmware to your device directly
         from the browser — no toolchain, no command line.
+      </p>
+      <p class="build-info">
+        Build:
+        <a href="https://github.com/Capynaras-Club/BloomOnDevice/commit/__BUILD_SHA__" target="_blank" rel="noopener">
+          <code>__BUILD_SHA_SHORT__</code>
+        </a>
+        · __BUILD_DATE__
       </p>
 
       <div id="browser-warn" class="browser-warn">

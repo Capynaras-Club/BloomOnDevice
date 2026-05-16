@@ -24,6 +24,12 @@
 #define PIN_TOUCH_CS    33
 #define PIN_TOUCH_IRQ   36
 
+// BOOT pushbutton on the CYD: connects GPIO0 to GND when pressed, sits
+// HIGH otherwise thanks to the strapping-pin pull-up. Read at runtime to
+// offer a "skip WiFi setup" escape hatch on the splash screen.
+#define PIN_BOOT_BUTTON  0
+#define SKIP_WIFI_WINDOW_MS  3000
+
 // =========================================================================
 // SPI speeds
 // =========================================================================
@@ -78,6 +84,12 @@
 #define BACKLIGHT_DIM        64
 #define DIM_TIMEOUT_MS    30000
 #define SLEEP_TIMEOUT_MS  40000
+
+// Backup wake interval during light sleep, in seconds. Touch-IRQ wake is
+// the primary path, but if T_IRQ is stuck the chip would never wake on
+// its own. Timer wake re-renders clock/weather every period and falls
+// back to sleep immediately if nothing actually changed.
+#define SLEEP_WAKE_PERIOD_S  300
 
 // =========================================================================
 // Behavior

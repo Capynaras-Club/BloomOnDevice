@@ -112,6 +112,17 @@ jobs:
           cp release/firmware.bin   pages-site/install/firmware/
           cp release/bootloader.bin pages-site/install/firmware/
           cp release/partitions.bin pages-site/install/firmware/
+
+          # Stamp the deployed installer page with the commit it was
+          # built from, so "did I just flash the latest firmware?" is
+          # decidable from the browser without a serial monitor.
+          SHA_FULL="${GITHUB_SHA}"
+          SHA_SHORT="${SHA_FULL:0:7}"
+          BUILD_DATE="$(date -u '+%Y-%m-%d %H:%M UTC')"
+          sed -i "s|__BUILD_SHA__|${SHA_FULL}|g"        pages-site/install/index.html
+          sed -i "s|__BUILD_SHA_SHORT__|${SHA_SHORT}|g" pages-site/install/index.html
+          sed -i "s|__BUILD_DATE__|${BUILD_DATE}|g"     pages-site/install/index.html
+
           ls -la pages-site pages-site/install pages-site/install/firmware
 
       - name: Configure Pages
