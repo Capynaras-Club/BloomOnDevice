@@ -181,7 +181,9 @@ void setup() {
   touchInit();
   storageInit();
   loadEvents();
-  if (pruneOldEvents()) saveEvents();
+  // Pruning is deferred until after NTP sync — pruneOldEvents() now
+  // refuses to run without a valid clock (otherwise it would silently
+  // drop everything as "older than HISTORY_DAYS before epoch").
 
   // Splash
   drawTextCentered(SCREEN_W / 2, 100, "Bloom on Device", COL_TEXT, 2);
@@ -208,6 +210,9 @@ void setup() {
     hasWifi = true;
     if (fetchLocation()) {
       WifiMgr::setTimezone(location.posix_tz);
+      // Clock is set now — drop events older than HISTORY_DAYS and
+      // flush the trimmed log to flash. No-op if nothing aged out.
+      if (pruneOldEvents()) saveEvents();
       fetchWeather();
       lastWeatherFetch = millis();
     }
@@ -266,11 +271,13 @@ void loop() {
     needsRender = true;
   }
 
-  // Live timer refresh on stats screen
+  // Live "X min ago" tick on the stats screen. Partial repaint — wiping
+  // only the age line of each card, not the whole screen — so the minute
+  // tick is invisible rather than a full-screen flash every 60 s.
   if (currentScreen == SCREEN_STATS &&
       millis() - lastRefresh > TIMER_REFRESH_MS) {
     lastRefresh = millis();
-    needsRender = true;
+    refreshStatsAges();
   }
 
   // Periodic weather refresh

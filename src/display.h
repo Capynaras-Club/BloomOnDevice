@@ -208,6 +208,33 @@ inline void drawStatsScreen() {
   drawStatCard(CARD_SLEEP_Y,  "Sleep",  COL_SLEEP,  COL_SLEEP_BG,  EV_SLEEP);
 }
 
+// Repaint *only* the "X min ago" line of one card. Used by the 60-second
+// timer so the minute tick doesn't flash the whole screen — full
+// drawStatsScreen() wipes everything and feels jarring.
+inline void refreshStatCardAge(int16_t y, uint16_t bg, uint8_t type) {
+  const int16_t lineY = y + 62;
+  const int16_t lineH = 10;
+  tft.fillRect(CARD_X + 4, lineY, CARD_W - 8, lineH, bg);
+
+  const Event* last = getLastOfType(type);
+  if (!last) return;
+
+  uint32_t now  = (uint32_t)time(nullptr);
+  uint32_t mins = (now > last->timestamp) ? (now - last->timestamp) / 60 : 0;
+  char buf[16];
+  if (mins < 60) snprintf(buf, sizeof(buf), "%lu min ago", (unsigned long)mins);
+  else           snprintf(buf, sizeof(buf), "%luh%lum",
+                          (unsigned long)(mins / 60),
+                          (unsigned long)(mins % 60));
+  drawTextAt(CARD_X + 12, lineY, buf, COL_TEXT_DIM, 1);
+}
+
+inline void refreshStatsAges() {
+  refreshStatCardAge(CARD_FEED_Y,   COL_FEED_BG,   EV_FEED);
+  refreshStatCardAge(CARD_DIAPER_Y, COL_DIAPER_BG, EV_DIAPER);
+  refreshStatCardAge(CARD_SLEEP_Y,  COL_SLEEP_BG,  EV_SLEEP);
+}
+
 inline void refreshTimerDisplay() {
   drawStatsScreen();
 }

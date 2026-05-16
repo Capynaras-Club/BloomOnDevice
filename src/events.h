@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <string.h>
+#include <time.h>
 #include "config.h"
 
 struct Event {
@@ -11,14 +12,32 @@ struct Event {
   uint16_t duration;
 };
 
+// Definitions live in storage.cpp.
 extern Event    eventLog[MAX_EVENTS];
 extern uint16_t eventCount;
 extern uint32_t nextEventId;
 
-void     saveEvents();
-bool     loadEvents();
-// Returns true iff any events were dropped. Does NOT save — caller decides.
-bool     pruneOldEvents();
+void saveEvents();   // storage.cpp
+bool loadEvents();   // storage.cpp
+
+// =========================================================================
+// Clock sanity
+// =========================================================================
+//
+// time() returns 0 (epoch) until NTP runs. Anything before this sentinel is
+// "the clock is wrong" — we refuse to log events with such timestamps,
+// otherwise they end up years in the past and get pruned the next time
+// pruneOldEvents() runs once the clock catches up.
+
+#define CLOCK_VALID_AFTER_TS  1700000000UL  // 2023-11-14T22:13:20Z
+
+inline bool clockIsValid() {
+  return (uint32_t)time(nullptr) > CLOCK_VALID_AFTER_TS;
+}
+
+// =========================================================================
+// Day boundary helpers
+// =========================================================================
 
 inline uint32_t dayStartOffset(uint8_t daysBack) {
   time_t now = time(nullptr);
@@ -28,10 +47,39 @@ inline uint32_t dayStartOffset(uint8_t daysBack) {
   return (uint32_t)midnight - (uint32_t)daysBack * 86400UL;
 }
 
+// =========================================================================
+// In-memory log mutation
+// =========================================================================
+
+// Returns true iff any events were dropped. Does NOT save — caller decides.
+// Pure event-state, no I/O — defined here as inline rather than in
+// storage.cpp so it doesn't drag flash code into callers that just want
+// to filter the log in RAM.
+inline bool pruneOldEvents() {
+  if (!clockIsValid()) return false;  // can't decide "old" without a clock
+
+  uint32_t cutoff = dayStartOffset(HISTORY_DAYS);
+  uint16_t write  = 0;
+  for (uint16_t i = 0; i < eventCount; i++) {
+    if (eventLog[i].timestamp >= cutoff) {
+      if (write != i) eventLog[write] = eventLog[i];
+      write++;
+    }
+  }
+  if (write == eventCount) return false;
+  eventCount = write;
+  return true;
+}
+
+// Returns the new event's id, or 0 if the clock isn't set yet (we refuse
+// to log otherwise — the bogus timestamp would be pruned on the next
+// clock catch-up).
 inline uint32_t logEvent(uint8_t type, uint16_t duration = 0) {
-  // Prune stale events first so we never write the new event into flash
-  // alongside ones we're about to drop on the next boot. One flash write
-  // per logged event, regardless of whether pruning happened.
+  if (!clockIsValid()) {
+    Serial.println("[events] refused: clock not set yet");
+    return 0;
+  }
+
   pruneOldEvents();
 
   if (eventCount >= MAX_EVENTS) {
