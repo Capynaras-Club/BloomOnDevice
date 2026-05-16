@@ -12,6 +12,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiManager.h>
+#include <esp_wifi.h>
 #include <time.h>
 #include "config.h"
 
@@ -22,6 +23,16 @@
 extern bool hasWifi;
 
 namespace WifiMgr {
+
+// True if the WiFi NVS namespace has a non-empty SSID stored. Used by the
+// splash screen to swap "connecting wifi…" for the captive-portal hint
+// when this is a first boot or NVS was wiped.
+inline bool hasSavedCredentials() {
+  WiFi.mode(WIFI_STA);
+  wifi_config_t conf = {};
+  if (esp_wifi_get_config(WIFI_IF_STA, &conf) != ESP_OK) return false;
+  return conf.sta.ssid[0] != '\0';
+}
 
 // Returns true if connected to a saved network, or if the user completed
 // provisioning in the captive portal. Returns false on offline boot
