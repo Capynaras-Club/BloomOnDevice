@@ -101,15 +101,18 @@ jobs:
       # ---------------------------------------------------------------
       # GitHub Pages — installer page + firmware co-located so the
       # ESP Web Tools manifest's relative `firmware/*.bin` paths resolve.
+      # Files are staged under /install/ so the deployed URL is
+      # https://<owner>.github.io/<repo>/install/ — matching the README
+      # link and the manifest's relative paths.
       # ---------------------------------------------------------------
       - name: Stage Pages site
         run: |
-          mkdir -p pages-site/firmware
-          cp -r docs/install/. pages-site/
-          cp release/firmware.bin   pages-site/firmware/
-          cp release/bootloader.bin pages-site/firmware/
-          cp release/partitions.bin pages-site/firmware/
-          ls -la pages-site pages-site/firmware
+          mkdir -p pages-site/install/firmware
+          cp -r docs/install/. pages-site/install/
+          cp release/firmware.bin   pages-site/install/firmware/
+          cp release/bootloader.bin pages-site/install/firmware/
+          cp release/partitions.bin pages-site/install/firmware/
+          ls -la pages-site pages-site/install pages-site/install/firmware
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
