@@ -38,22 +38,24 @@
 #define TOUCH_SPI_HZ     2500000
 
 // =========================================================================
-// Display geometry — portrait UI (240x320 logical) rendered onto a panel
-// that turned out to be landscape-native. Adafruit_ILI9341 assumes the
-// panel is 240×320 portrait native, so plain rotation 0/2 leaves 80 px
-// of unrendered RAM at the bottom of the visible window.
+// Display geometry — portrait UI (240×320 logical).
 //
-// TFT_ROTATION = 3 sets the MV bit in MADCTL, which transposes addressing
-// on the panel side: our 240×320 logical canvas maps onto the panel's
-// 320×240 physical pixels through the transpose. MX + MY also flip both
-// axes so logical (0,0) lands at physical top-left when the case is held
-// USB-C-down. The portrait UI design (3 cards stacked vertically) is
-// unchanged — only the panel-side mapping is.
+// Adafruit_ILI9341::setRotation() updates _width/_height to match the
+// requested rotation. The MV-transpose path (rotation 1/3) leaves the
+// library convinced the canvas is 320×240, so every draw at y > 239 in
+// our portrait 240×320 coord space was being silently clipped — that's
+// the 80-px noise band at the bottom of the panel we kept seeing.
+//
+// Rotation 0 lines the library up with the physical panel without any
+// transpose: _width=240, _height=320 matches SCREEN_W/SCREEN_H one-to-one
+// and the full panel gets cleared on fillScreen(). If the image ends up
+// upside-down for your case orientation, change to 2 (also MX/MY only,
+// no MV). 1 / 3 are landscape and will reintroduce the clipping.
 // =========================================================================
 
 #define SCREEN_W        240
 #define SCREEN_H        320
-#define TFT_ROTATION    3
+#define TFT_ROTATION    0
 
 // =========================================================================
 // Touch calibration (raw XPT2046 min/max)
@@ -66,25 +68,34 @@
 
 // =========================================================================
 // UI colors (RGB565)
+//
+// The 2.4" CYD panel renders narrow gamut and is viewed from arm's length
+// in a dim room. Subtle palettes wash out — every card looked like the
+// same olive blob in the field photo. Boost saturation, push text to pure
+// white, and lean on hue contrast between cards instead of brightness.
 // =========================================================================
 
-#define COL_BG            0x0863  // #0C0C18
-#define COL_BAR           0x0843  // #10101E
-#define COL_DIVIDER       0x2947  // #2A2A3E
-#define COL_TEXT          0xEF3F  // #E8E8FF
-#define COL_TEXT_DIM      0x7394  // #7070A0
-#define COL_CLOCK         0xD69F  // #D0D0FF
+#define COL_BG            0x0000  // #000000 — pure black, max contrast against white text
+#define COL_BAR           0x10A2  // #131515 — header/nav strip, slightly lifted from BG
+#define COL_DIVIDER       0x4208  // #424242
+#define COL_TEXT          0xFFFF  // #FFFFFF — pure white
+#define COL_TEXT_DIM      0xC618  // #C0C0C0 — light grey, still readable
+#define COL_CLOCK         0xFFFF  // pure white, the clock is the headline
 
-#define COL_FEED          0xF4EC  // #F4A261
-#define COL_FEED_BG       0x28C1  // #2A1A0E
-#define COL_DIAPER        0x7E5C  // #7EC8E3
-#define COL_DIAPER_BG     0x08E4  // #0A1E26
-#define COL_SLEEP         0xC57E  // #C0AEF5
-#define COL_SLEEP_BG      0x187D  // #160F2E
+// Per-type accent hues. Used as the card background AND the type-name
+// color on log rows, so a glance at the log instantly shows which row
+// is a feed/diaper/sleep. drawStatCard always renders card text in
+// COL_TEXT (white) on top of these for guaranteed contrast.
+#define COL_FEED          0xC2A0  // #C45000 — warm saturated orange
+#define COL_FEED_BG       0xC2A0
+#define COL_DIAPER        0x033F  // #0066FF — saturated blue
+#define COL_DIAPER_BG     0x033F
+#define COL_SLEEP         0x6817  // #6802C0 — saturated purple
+#define COL_SLEEP_BG      0x6817
 
-#define COL_DEL_ARM       0x2061  // #2A0A0A
-#define COL_DEL_CONFIRM   0xC185  // #C0302A
-#define COL_RAIN          0x7E5C  // #7EC8E3
+#define COL_DEL_ARM       0x8000  // #800000 — dark red row
+#define COL_DEL_CONFIRM   0xF800  // #FF0000 — full red on confirm
+#define COL_RAIN          0x07FF  // #00FFFF — cyan rain indicator
 
 // =========================================================================
 // Power management

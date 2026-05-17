@@ -270,14 +270,20 @@ void setup() {
 void loop() {
   bool needsRender = false;
 
-  // Touch sanity gate. Two conditions must both hold:
+  // Touch sanity gate. Three conditions, all required:
   //   1. tirqTouched() — the XPT2046 lib's FALLING-edge ISR has fired
-  //      since the last getPoint(). A statically-low T_IRQ (which we saw
-  //      on this board) trips digitalRead() forever but only fires the
-  //      ISR once, so this filters that case.
-  //   2. z is in [TOUCH_Z_MIN, TOUCH_Z_MAX]. SPI reads from a misbehaving
+  //      since the last getPoint(). Filters away a statically-low T_IRQ
+  //      that would trip digitalRead() forever.
+  //   2. T_IRQ is currently LOW (digitalRead). The earlier flood — 100
+  //      spurious "REJECTED z=4095" lines per second — came from RF
+  //      noise on GPIO36's unbuffered trace momentarily glitching the
+  //      pin LOW. Each glitch fires the ISR, but T_IRQ snaps back HIGH
+  //      before getPoint() runs. A real pen contact pulls T_IRQ low
+  //      and holds it there. Requiring the pin to *still* read LOW
+  //      when we sample drops the noise edges without losing real taps.
+  //   3. z is in [TOUCH_Z_MIN, TOUCH_Z_MAX]. SPI reads from a misbehaving
   //      XPT2046 come back as z=0 or z=4095; real taps live in the middle.
-  if (touch.tirqTouched()) {
+  if (touch.tirqTouched() && digitalRead(PIN_TOUCH_IRQ) == LOW) {
     TS_Point p = touch.getPoint();
     if (p.z >= TOUCH_Z_MIN && p.z <= TOUCH_Z_MAX) {
       uint32_t now = millis();
@@ -293,13 +299,8 @@ void loop() {
         needsRender = true;
       }
     } else {
-      // The XPT2046 on this board fires a spurious IRQ flood when its
-      // T_IRQ trace isn't well pulled up — every spurious edge calls
-      // getPoint() and gets a garbage z=4095. The gate above correctly
-      // rejects it, but logging every reject was drowning serial in
-      // hundreds of lines per second and masking real events. Rate
-      // limit so a real misbehaving panel is still visible (one line
-      // per second of noise) but the log stays readable.
+      // Rate-limited reject log so a real misbehaving panel is still
+      // visible without flooding serial.
       static uint32_t lastRejectLog   = 0;
       static uint32_t rejectsThisLog  = 0;
       rejectsThisLog++;

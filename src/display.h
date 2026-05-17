@@ -80,10 +80,13 @@ inline void backlightSet(uint8_t v) { ledcWrite(0, v); }
 inline void displayInit() {
   tft.begin(TFT_SPI_HZ);
   tft.setRotation(TFT_ROTATION);
-  // The Sunton 2432S024R's ILI9341 runs the panel in RGB order, but
-  // Adafruit_ILI9341 hardcodes the BGR bit on in every setRotation() call.
-  // Resend MADCTL with the BGR bit cleared so reds and blues stop swapping.
-  // Bits: MY=0x80, MX=0x40, MV=0x20 (set per rotation), BGR=0x08 (cleared).
+  // Sunton 2432S024R's ILI9341 panel is RGB-native, but Adafruit_ILI9341
+  // hardcodes the BGR bit in every setRotation() call — without this
+  // override every red came out blue and vice versa.
+  // Bits per rotation: MY=0x80, MX=0x40, MV=0x20 (per rotation), BGR=0x08
+  // (cleared). With TFT_ROTATION=0 we send MX-only so the library's
+  // _width=240, _height=320 matches the physical panel and clipping past
+  // y=239 disappears.
   static const uint8_t MADCTL_RGB[4] = { 0x40, 0x20, 0x80, 0xE0 };
   uint8_t m = MADCTL_RGB[TFT_ROTATION & 3];
   tft.sendCommand(ILI9341_MADCTL, &m, 1);
@@ -169,23 +172,25 @@ inline void drawNavBar(Screen s) {
 // =========================================================================
 
 inline void drawStatCard(int16_t y, const char* title,
-                         uint16_t fg, uint16_t bg, uint8_t type) {
+                         uint16_t bg, uint8_t type) {
   tft.fillRoundRect(CARD_X, y, CARD_W, CARD_H, 6, bg);
-  tft.drawRoundRect(CARD_X, y, CARD_W, CARD_H, 6, fg);
 
-  drawTextAt(CARD_X + 12, y + 10, title, fg, 2);
+  // All card text is pure white on the saturated card BG — earlier builds
+  // used a tinted fg over a darker tinted bg and the whole card looked
+  // like one olive blob on the actual panel.
+  drawTextAt(CARD_X + 12, y + 10, title, COL_TEXT, 2);
 
   uint16_t count = countEventsForDay(0, type);
   char dbuf[16];
   snprintf(dbuf, sizeof(dbuf), "%u today", (unsigned)count);
   int16_t cw = strlen(dbuf) * 6;
-  drawTextAt(CARD_X + CARD_W - cw - 12, y + 14, dbuf, fg, 1);
+  drawTextAt(CARD_X + CARD_W - cw - 12, y + 14, dbuf, COL_TEXT, 1);
 
   const Event* last = getLastOfType(type);
   if (last) {
     char tbuf[8];
     getEventTimeString(last->timestamp, tbuf, sizeof(tbuf));
-    drawTextAt(CARD_X + 12, y + 38, "Last", COL_TEXT_DIM, 1);
+    drawTextAt(CARD_X + 12, y + 38, "Last", COL_TEXT, 1);
     drawTextAt(CARD_X + 50, y + 34, tbuf, COL_TEXT, 2);
 
     uint32_t now = (uint32_t)time(nullptr);
@@ -195,17 +200,20 @@ inline void drawStatCard(int16_t y, const char* title,
     else           snprintf(buf, sizeof(buf), "%luh%lum",
                             (unsigned long)(mins / 60),
                             (unsigned long)(mins % 60));
-    drawTextAt(CARD_X + 12, y + 62, buf, COL_TEXT_DIM, 1);
+    drawTextAt(CARD_X + 12, y + 62, buf, COL_TEXT, 1);
   } else {
-    drawTextAt(CARD_X + 12, y + 38, "—", COL_TEXT_DIM, 2);
+    // ASCII only: any non-ASCII glyph (en-dash, em-dash, etc.) is multi-
+    // byte UTF-8 and the GFX classic font draws one garbage glyph per
+    // byte, which is what produced the "πς̄" salad in the field photo.
+    drawTextAt(CARD_X + 12, y + 40, "tap to log", COL_TEXT, 1);
   }
 }
 
 inline void drawStatsScreen() {
   tft.fillRect(0, HDR_H, SCREEN_W, NAV_Y - HDR_H, COL_BG);
-  drawStatCard(CARD_FEED_Y,   "Feed",   COL_FEED,   COL_FEED_BG,   EV_FEED);
-  drawStatCard(CARD_DIAPER_Y, "Diaper", COL_DIAPER, COL_DIAPER_BG, EV_DIAPER);
-  drawStatCard(CARD_SLEEP_Y,  "Sleep",  COL_SLEEP,  COL_SLEEP_BG,  EV_SLEEP);
+  drawStatCard(CARD_FEED_Y,   "Feed",   COL_FEED_BG,   EV_FEED);
+  drawStatCard(CARD_DIAPER_Y, "Diaper", COL_DIAPER_BG, EV_DIAPER);
+  drawStatCard(CARD_SLEEP_Y,  "Sleep",  COL_SLEEP_BG,  EV_SLEEP);
 }
 
 inline void refreshTimerDisplay() {
@@ -393,6 +401,10 @@ inline void drawForecastScreen() {
 // =========================================================================
 
 inline void renderScreen(Screen s) {
+  // Full clear first. Each per-screen draw only repaints its own region,
+  // and earlier builds were leaving splash text behind in the captive-
+  // portal area on first render.
+  tft.fillScreen(COL_BG);
   drawHeader();
   switch (s) {
     case SCREEN_FORECAST:  drawForecastScreen();    break;
