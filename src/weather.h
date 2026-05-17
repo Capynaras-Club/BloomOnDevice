@@ -30,6 +30,57 @@ extern WeatherHourly  wxHourly[HOURLY_SLOTS];
 extern WeatherDaily   wxDaily[DAILY_SLOTS];
 extern bool           wxValid;
 
+// ip-api returns UTF-8 city names with diacritics (e.g. "Florianópolis").
+// Adafruit_GFX's classic font is a 256-entry CP437 glyph table; multi-byte
+// UTF-8 sequences come through as one garbage glyph per byte (so "ó" =>
+// 0xC3 0xB3 => two random Greek/math chars on screen). Strip to ASCII by
+// dropping high-bit bytes and mapping common Latin-1 / Latin Extended-A
+// accents to their base letter as we copy.
+inline void copyAsAscii(char* dst, const char* src, size_t cap) {
+  if (cap == 0) return;
+  size_t w = 0;
+  for (size_t i = 0; src[i] && w + 1 < cap; ) {
+    uint8_t b = (uint8_t)src[i];
+    if (b < 0x80) {                     // plain ASCII
+      dst[w++] = (char)b;
+      i++;
+    } else if ((b & 0xE0) == 0xC0 && (uint8_t)src[i+1]) {  // 2-byte UTF-8
+      uint16_t cp = ((b & 0x1F) << 6) | ((uint8_t)src[i+1] & 0x3F);
+      char r = '?';
+      // Lower-case
+      if      (cp == 0x00E0 || cp == 0x00E1 || cp == 0x00E2 || cp == 0x00E3 || cp == 0x00E4 || cp == 0x00E5) r = 'a';
+      else if (cp == 0x00E7) r = 'c';
+      else if (cp == 0x00E8 || cp == 0x00E9 || cp == 0x00EA || cp == 0x00EB) r = 'e';
+      else if (cp == 0x00EC || cp == 0x00ED || cp == 0x00EE || cp == 0x00EF) r = 'i';
+      else if (cp == 0x00F1) r = 'n';
+      else if (cp == 0x00F2 || cp == 0x00F3 || cp == 0x00F4 || cp == 0x00F5 || cp == 0x00F6 || cp == 0x00F8) r = 'o';
+      else if (cp == 0x00F9 || cp == 0x00FA || cp == 0x00FB || cp == 0x00FC) r = 'u';
+      else if (cp == 0x00FD || cp == 0x00FF) r = 'y';
+      // Upper-case
+      else if (cp == 0x00C0 || cp == 0x00C1 || cp == 0x00C2 || cp == 0x00C3 || cp == 0x00C4 || cp == 0x00C5) r = 'A';
+      else if (cp == 0x00C7) r = 'C';
+      else if (cp == 0x00C8 || cp == 0x00C9 || cp == 0x00CA || cp == 0x00CB) r = 'E';
+      else if (cp == 0x00CC || cp == 0x00CD || cp == 0x00CE || cp == 0x00CF) r = 'I';
+      else if (cp == 0x00D1) r = 'N';
+      else if (cp == 0x00D2 || cp == 0x00D3 || cp == 0x00D4 || cp == 0x00D5 || cp == 0x00D6 || cp == 0x00D8) r = 'O';
+      else if (cp == 0x00D9 || cp == 0x00DA || cp == 0x00DB || cp == 0x00DC) r = 'U';
+      else if (cp == 0x00DD) r = 'Y';
+      else if (cp == 0x00DF) r = 's';   // ß
+      dst[w++] = r;
+      i += 2;
+    } else if ((b & 0xF0) == 0xE0) {    // 3-byte UTF-8 (CJK etc.) — placeholder
+      dst[w++] = '?';
+      i += 3;
+    } else if ((b & 0xF8) == 0xF0) {    // 4-byte UTF-8 — placeholder
+      dst[w++] = '?';
+      i += 4;
+    } else {                            // stray continuation byte
+      i++;
+    }
+  }
+  dst[w] = '\0';
+}
+
 inline bool fetchLocation() {
   HTTPClient http;
   http.begin("http://ip-api.com/json");
@@ -42,9 +93,9 @@ inline bool fetchLocation() {
   http.end();
   if (err) return false;
 
-  strlcpy(location.city,     doc["city"]        | "Unknown", sizeof(location.city));
-  strlcpy(location.cc,       doc["countryCode"] | "",        sizeof(location.cc));
-  strlcpy(location.timezone, doc["timezone"]    | "UTC",     sizeof(location.timezone));
+  copyAsAscii(location.city, doc["city"] | "Unknown", sizeof(location.city));
+  strlcpy(location.cc,       doc["countryCode"] | "",    sizeof(location.cc));
+  strlcpy(location.timezone, doc["timezone"]    | "UTC", sizeof(location.timezone));
   location.lat   = doc["lat"] | 0.0f;
   location.lon   = doc["lon"] | 0.0f;
 
